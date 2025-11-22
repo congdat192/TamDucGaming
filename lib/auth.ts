@@ -6,7 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
 
 export interface JWTPayload {
   userId: string
-  phone: string
+  phone: string | null
+  email: string | null
 }
 
 export function generateToken(payload: JWTPayload): string {

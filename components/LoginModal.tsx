@@ -93,98 +93,111 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="relative bg-gradient-to-b from-green-800 to-green-900 rounded-3xl p-8 max-w-md w-full border-4 border-yellow-400 shadow-2xl">
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl w-8 h-8 flex items-center justify-center"
-        >
-          ✕
-        </button>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="relative w-full max-w-md">
+        {/* Header */}
+        <div className="glass rounded-t-2xl border-b border-white/10 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+              <span className="text-xl">🎅</span>
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              {step === 'input' ? 'Đăng Nhập' : 'Xác Thực OTP'}
+            </h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
 
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🎅</div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {step === 'input' ? 'ĐĂNG NHẬP' : 'XÁC THỰC OTP'}
-          </h2>
-          <p className="text-green-200">
+        {/* Body */}
+        <div className="glass rounded-b-2xl px-5 py-6">
+          {/* Subtitle */}
+          <p className="text-white/70 text-sm text-center mb-6">
             {step === 'input'
-              ? 'Nhập email để bắt đầu chơi'
+              ? 'Nhập email để bắt đầu chơi game'
               : `Nhập mã OTP đã gửi đến ${email}`
             }
           </p>
-        </div>
 
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 rounded-lg mb-4 text-center">
-            {error}
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-4 text-center text-sm">
+              {error}
+            </div>
+          )}
+
+          {step === 'input' ? (
+            <form onSubmit={handleSendOTP} className="space-y-5">
+              <div>
+                <label className="block text-white/90 mb-2 text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all"
+                  required
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !isEmailValid()}
+                className="w-full py-3.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-yellow-500/20"
+              >
+                {loading ? 'Đang gửi...' : 'Gửi mã OTP'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-5">
+              <div>
+                <label className="block text-white/90 mb-2 text-sm font-medium">Mã OTP</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all text-center tracking-[0.5em] text-lg"
+                  maxLength={6}
+                  required
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                className="w-full py-3.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-yellow-500/20"
+              >
+                {loading ? 'Đang xác thực...' : 'Xác nhận'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('input')
+                  setOtp('')
+                  setError('')
+                }}
+                className="w-full py-2 text-white/50 hover:text-white/80 transition-colors text-sm"
+              >
+                ← Đổi email
+              </button>
+            </form>
+          )}
+
+          {/* Footer hint */}
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <p className="text-center text-white/40 text-xs">
+              {step === 'otp' && debugOtp
+                ? <span className="text-yellow-400">💡 Demo OTP: {debugOtp}</span>
+                : '📧 Mã OTP sẽ được gửi đến email của bạn'
+              }
+            </p>
           </div>
-        )}
-
-        {step === 'input' ? (
-          <form onSubmit={handleSendOTP} className="space-y-4">
-            <div>
-              <label className="block text-white mb-2 font-semibold">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-white/30 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg"
-                required
-                autoFocus
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !isEmailValid()}
-              className="w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
-            >
-              {loading ? 'ĐANG GỬI...' : 'GỬI MÃ OTP'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyOTP} className="space-y-4">
-            <div>
-              <label className="block text-white mb-2 font-semibold">Mã OTP</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-white/30 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg text-center tracking-[0.5em]"
-                maxLength={6}
-                required
-                autoFocus
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading || otp.length < 6}
-              className="w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
-            >
-              {loading ? 'ĐANG XÁC THỰC...' : 'XÁC NHẬN'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep('input')
-                setOtp('')
-                setError('')
-              }}
-              className="w-full py-2 text-white/70 hover:text-white transition-colors"
-            >
-              ← Đổi email
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-green-300 text-xs mt-6 bg-black/20 rounded-lg p-2">
-          {step === 'otp' && debugOtp
-            ? `💡 Demo OTP: ${debugOtp}`
-            : '📧 Mã OTP sẽ được gửi đến email của bạn'
-          }
-        </p>
+        </div>
       </div>
     </div>
   )

@@ -34,8 +34,8 @@ export default function BottomNavigation({
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-green-900/95 to-green-800/95 backdrop-blur-md border-t border-yellow-400/30 safe-area-bottom">
-      <div className="max-w-md mx-auto flex justify-around items-center py-0.5 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a4d2e]/90 backdrop-blur-md border-t border-white/10 safe-area-bottom">
+      <div className="max-w-md mx-auto flex justify-around items-center py-1 px-2">
         {/* Profile Button */}
         {showProfile && (
           <button

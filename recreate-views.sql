@@ -35,7 +35,7 @@ LEFT JOIN game_sessions gs ON u.id = gs.user_id
 GROUP BY u.id, u.phone, u.email, u.referral_code
 ORDER BY monthly_score DESC;
 
--- 3. View leaderboard tổng
+-- 3. View leaderboard tổng (tính từ game_sessions, không dùng users.total_score)
 DROP VIEW IF EXISTS leaderboard_all_time;
 CREATE OR REPLACE VIEW leaderboard_all_time AS
 SELECT
@@ -43,9 +43,9 @@ SELECT
   u.phone,
   u.email,
   u.referral_code,
-  u.total_score,
+  COALESCE(SUM(gs.score), 0) as total_score,
   COUNT(gs.id) as games_played
 FROM users u
 LEFT JOIN game_sessions gs ON u.id = gs.user_id
-GROUP BY u.id, u.phone, u.email, u.referral_code, u.total_score
-ORDER BY u.total_score DESC;
+GROUP BY u.id, u.phone, u.email, u.referral_code
+ORDER BY total_score DESC;

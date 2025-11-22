@@ -52,97 +52,126 @@ function HomeContent() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden pb-20">
+    <main className="h-[100dvh] relative overflow-hidden flex flex-col">
       <Snowflakes />
 
-      {/* Header */}
-      <header className="relative z-10 pt-2 pb-4 text-center">
-        <div className="christmas-lights h-1 mb-4"></div>
-        <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-lg mb-2">
-          🎅 SANTA JUMP 🎄
-        </h1>
-        <p className="text-xl md:text-2xl text-yellow-300 font-semibold">
-          Mắt Kính Tâm Đức
-        </p>
-      </header>
+      {/* Main scrollable area */}
+      <div className="flex-1 overflow-y-auto pb-20 relative z-10">
+        {/* Hero Section - fits in viewport */}
+        <section className="min-h-[calc(100dvh-80px)] flex flex-col px-4 py-3">
+          {/* Header - compact */}
+          <header className="text-center flex-shrink-0">
+            <div className="christmas-lights h-1 mb-2"></div>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+              🎅 SANTA JUMP 🎄
+            </h1>
+            <p className="text-sm sm:text-lg text-yellow-300 font-semibold mt-1">
+              Mắt Kính Tâm Đức
+            </p>
+          </header>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-8">
-        {/* Game Preview Card */}
-        <div className="glass rounded-3xl p-8 max-w-md w-full text-center mb-8">
-          <div className="text-8xl mb-4 animate-bounce">🎅</div>
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Nhảy Cùng Ông Già Noel!
-          </h2>
-          <p className="text-green-200 mb-6">
-            Điều khiển ông già Noel vượt qua chướng ngại vật,
-            ghi điểm cao và nhận voucher hấp dẫn!
-          </p>
+          {/* Game Card - flexible height */}
+          <div className="flex-1 flex items-center justify-center py-3">
+            <div className="glass rounded-2xl p-4 sm:p-6 max-w-md w-full">
+              {/* Santa Icon + Title */}
+              <div className="text-center mb-3">
+                <div className="text-5xl sm:text-6xl mb-2">🎅</div>
+                <h2 className="text-lg sm:text-xl font-bold text-white">
+                  Nhảy Cùng Ông Già Noel!
+                </h2>
+                <p className="text-white/70 text-xs sm:text-sm mt-1">
+                  Vượt chướng ngại vật, ghi điểm cao, nhận voucher!
+                </p>
+              </div>
 
-          {/* Voucher Info */}
-          <div className="bg-white/10 rounded-xl p-4 mb-6">
-            <h3 className="text-yellow-400 font-bold mb-3">🎁 VOUCHER THƯỞNG</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-white">
-                <span>≥ 10 điểm</span>
-                <span className="text-green-400 font-bold">50.000đ</span>
+              {/* Voucher Info - compact */}
+              <div className="bg-white/10 rounded-xl p-3 mb-3">
+                <h3 className="text-yellow-400 font-bold text-sm mb-2 text-center">🎁 VOUCHER THƯỞNG</h3>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="bg-white/5 rounded-lg py-2 px-1">
+                    <div className="text-white/70">≥10 điểm</div>
+                    <div className="text-green-400 font-bold">50K</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg py-2 px-1">
+                    <div className="text-white/70">≥20 điểm</div>
+                    <div className="text-yellow-400 font-bold">100K</div>
+                  </div>
+                  <div className="bg-white/5 rounded-lg py-2 px-1">
+                    <div className="text-white/70">≥30 điểm</div>
+                    <div className="text-red-400 font-bold">150K</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between text-white">
-                <span>≥ 20 điểm</span>
-                <span className="text-yellow-400 font-bold">100.000đ</span>
+
+              {/* TOP Rankings - compact */}
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-3 mb-4 border border-yellow-500/30">
+                <h3 className="text-yellow-400 font-bold text-sm mb-2 text-center">🏆 GIẢI THƯỞNG LỚN</h3>
+                <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                  <div className="bg-white/10 rounded-lg py-2 px-2">
+                    <div className="text-white/70">TOP Tuần</div>
+                    <div className="text-yellow-300 font-bold">5 Triệu</div>
+                  </div>
+                  <div className="bg-white/10 rounded-lg py-2 px-2">
+                    <div className="text-white/70">TOP Tháng</div>
+                    <div className="text-orange-400 font-bold">iPhone 17</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between text-white">
-                <span>≥ 30 điểm</span>
-                <span className="text-red-400 font-bold">150.000đ</span>
-              </div>
+
+              {/* Play Button - always visible */}
+              <button
+                onClick={handlePlayClick}
+                disabled={loading}
+                className="w-full py-3 sm:py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg sm:text-xl rounded-xl btn-glow disabled:opacity-50 transition-all"
+              >
+                {loading ? 'ĐANG TẢI...' : isLoggedIn ? '🎮 CHƠI NGAY' : '🎮 BẮT ĐẦU'}
+              </button>
+
+              {isLoggedIn && user && (
+                <p className="text-green-300 mt-2 text-xs text-center">
+                  Xin chào, {user.name || (user.email ? user.email.split('@')[0] : user.phone?.slice(0, 4) + '***')}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Play Button */}
-          <button
-            onClick={handlePlayClick}
-            disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-2xl rounded-xl btn-glow disabled:opacity-50 transition-all"
-          >
-            {loading ? 'ĐANG TẢI...' : isLoggedIn ? '🎮 CHƠI NGAY' : '🎮 BẮT ĐẦU'}
-          </button>
+          {/* Scroll indicator */}
+          <div className="text-center flex-shrink-0 pb-2">
+            <p className="text-white/40 text-xs animate-pulse">↓ Xem hướng dẫn</p>
+          </div>
+        </section>
 
-          {isLoggedIn && user && (
-            <p className="text-green-300 mt-4 text-sm">
-              Xin chào, {user.name || (user.email ? user.email.split('@')[0] : user.phone?.slice(0, 4) + '***')}
-            </p>
-          )}
-        </div>
+        {/* How to Play - below the fold */}
+        <section className="px-4 pb-8">
+          <div className="glass rounded-2xl p-5 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-white mb-4 text-center">📖 Cách Chơi</h3>
+            <ol className="space-y-3 text-white/80 text-sm">
+              <li className="flex items-start gap-3">
+                <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
+                <span>Đăng nhập bằng email</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">2</span>
+                <span>Tap/Click để ông già Noel nhảy lên</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">3</span>
+                <span>Tránh va chạm với ống khói</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-bold">4</span>
+                <span>Ghi điểm cao để nhận voucher!</span>
+              </li>
+            </ol>
+          </div>
 
-        {/* How to Play */}
-        <div className="mt-8 glass rounded-2xl p-6 max-w-md w-full">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">📖 Cách Chơi</h3>
-          <ol className="space-y-3 text-green-200 text-sm">
-            <li className="flex items-start gap-2">
-              <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">1</span>
-              <span>Đăng nhập bằng email</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">2</span>
-              <span>Tap/Click để ông già Noel nhảy lên</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">3</span>
-              <span>Tránh va chạm với ống khói</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">4</span>
-              <span>Ghi điểm cao để nhận voucher!</span>
-            </li>
-          </ol>
-        </div>
+          {/* Footer */}
+          <footer className="text-center py-6 text-white/40 text-xs">
+            <p>© 2024 Mắt Kính Tâm Đức. All rights reserved.</p>
+            <p className="mt-1">Chương trình Giáng Sinh 2024</p>
+          </footer>
+        </section>
       </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 text-center py-8 text-white/60 text-sm">
-        <p>© 2024 Mắt Kính Tâm Đức. All rights reserved.</p>
-        <p className="mt-1">Chương trình Giáng Sinh 2024</p>
-      </footer>
 
       {/* Login Modal */}
       <LoginModal
@@ -165,7 +194,7 @@ function HomeContent() {
         }}
       />
 
-      {/* Bottom Navigation - luôn hiển thị */}
+      {/* Bottom Navigation */}
       <BottomNavigation
         onProfileClick={() => setShowProfile(true)}
         onLoginClick={() => setShowLogin(true)}

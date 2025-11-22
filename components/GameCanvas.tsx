@@ -68,28 +68,34 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
   }, [handleInteraction])
 
   return (
-    <div className="relative flex flex-col items-center">
+    <div
+      className="relative flex flex-col items-center select-none"
+      onClick={handleInteraction}
+      onTouchStart={(e) => {
+        e.preventDefault()
+        handleInteraction()
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault()
+      }}
+      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+    >
       <canvas
         ref={canvasRef}
-        onClick={handleInteraction}
-        onTouchStart={(e) => {
-          e.preventDefault()
-          handleInteraction()
-        }}
-        className="border-4 border-yellow-400 rounded-2xl shadow-2xl cursor-pointer touch-none"
-        style={{ maxWidth: '100%', height: 'auto' }}
+        className="border-4 border-yellow-400 rounded-2xl shadow-2xl cursor-pointer"
+        style={{ maxWidth: '100%', height: 'auto', touchAction: 'manipulation' }}
       />
 
       {/* Score Display */}
       {isPlaying && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 px-6 py-2 rounded-full">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 px-6 py-2 rounded-full pointer-events-none">
           <span className="text-white font-bold text-2xl">{currentScore}</span>
         </div>
       )}
 
-      {/* Start Overlay */}
+      {/* Start Overlay - pointer-events-none vì parent div xử lý touch */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl pointer-events-none">
           <div className="text-center">
             <div className="text-6xl mb-4 animate-bounce">🎅</div>
             <p className="text-white text-xl font-bold mb-2">TAP ĐỂ BẮT ĐẦU</p>

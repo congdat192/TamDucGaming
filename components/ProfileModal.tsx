@@ -193,13 +193,12 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
             <span className="text-3xl">🎅</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-white truncate">{displayName}</h2>
-            {user.email && (
-              <p className="text-white/80 text-sm truncate">📧 {user.email}</p>
-            )}
-            {user.phone && (
-              <p className="text-white/60 text-sm">📱 {user.phone}</p>
-            )}
+            <h2 className="text-lg font-bold text-white truncate">
+              {name || displayName}
+            </h2>
+            <p className="text-white/70 text-sm">
+              📱 {user.phone || 'Chưa cập nhật SĐT'}
+            </p>
           </div>
         </div>
 

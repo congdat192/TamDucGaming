@@ -8,12 +8,14 @@ interface GameCanvasProps {
   onScoreUpdate: (score: number) => void
   isPlaying: boolean
   onStartGame: () => void
+  playsRemaining: number
 }
 
-export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onStartGame }: GameCanvasProps) {
+export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onStartGame, playsRemaining }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<SantaJumpGame | null>(null)
   const [currentScore, setCurrentScore] = useState(0)
+  const [isPracticeMode, setIsPracticeMode] = useState(false)
 
   const handleScoreUpdate = useCallback((score: number) => {
     setCurrentScore(score)
@@ -67,6 +69,23 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleInteraction])
 
+  // Poll game phase to detect practice mode
+  useEffect(() => {
+    if (!isPlaying || !gameRef.current) {
+      setIsPracticeMode(false)
+      return
+    }
+
+    const interval = setInterval(() => {
+      if (gameRef.current) {
+        const phase = gameRef.current.getPhase()
+        setIsPracticeMode(phase === 'practice')
+      }
+    }, 100)
+
+    return () => clearInterval(interval)
+  }, [isPlaying])
+
   return (
     <div
       className="relative flex flex-col items-center select-none"
@@ -87,9 +106,25 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
       />
 
       {/* Score Display */}
-      {isPlaying && (
+      {isPlaying && !isPracticeMode && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 px-6 py-2 rounded-full pointer-events-none">
           <span className="text-white font-bold text-2xl">{currentScore}</span>
+        </div>
+      )}
+
+      {/* Practice Mode Overlay - Shows instructions during practice */}
+      {isPracticeMode && (
+        <div className="absolute inset-0 flex items-start justify-center pt-8 rounded-2xl pointer-events-none">
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-8 py-4 rounded-2xl shadow-2xl border-4 border-white animate-pulse">
+              <p className="text-white text-2xl font-black mb-2 drop-shadow-lg">
+                👆 NHẤN ĐỂ NHẢY 👆
+              </p>
+              <p className="text-white/90 text-sm font-bold">
+                Thử vài lần để làm quen!
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -99,7 +134,24 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
           <div className="text-center">
             <div className="text-6xl mb-4 animate-bounce">🎅</div>
             <p className="text-white text-xl font-bold mb-2">TAP ĐỂ BẮT ĐẦU</p>
-            <p className="text-white/70 text-sm">Nhấn Space hoặc tap màn hình</p>
+            <p className="text-white/70 text-sm mb-4">Nhấn Space hoặc tap màn hình</p>
+
+            {/* Plays Counter - Below instructions */}
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-400 px-5 py-2.5 rounded-full shadow-xl border-2 border-yellow-300">
+              <span className="text-xl">🎮</span>
+              <span className="text-black font-bold text-base whitespace-nowrap">
+                Số lượt còn lại: {playsRemaining === 999 ? '∞' : playsRemaining}
+              </span>
+            </div>
+
+            {/* Practice Instructions - Show on start screen */}
+            <div className="mt-6 animate-pulse">
+              <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 rounded-xl shadow-xl border-2 border-white inline-block">
+                <p className="text-white text-base font-black drop-shadow-lg">
+                  👆 NHẤN ĐỂ NHẢY 👆
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

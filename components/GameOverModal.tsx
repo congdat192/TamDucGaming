@@ -74,101 +74,99 @@ export default function GameOverModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-b from-blue-900 to-blue-950 rounded-3xl p-6 max-w-md w-full border-4 border-yellow-400 shadow-2xl score-popup">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass rounded-2xl p-5 max-w-md w-full border border-white/10 shadow-2xl">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="text-6xl mb-2">
+        <div className="text-center mb-4">
+          <div className="text-3xl mb-2">
             {score >= 30 ? '🏆' : score >= 20 ? '🥈' : score >= 10 ? '🥉' : '🎮'}
           </div>
-          <h2 className="text-3xl font-bold text-white mb-1">KẾT QUẢ</h2>
-          <div className="text-5xl font-bold text-yellow-400 my-4">
-            {score} <span className="text-2xl">điểm</span>
+          <h2 className="text-xl font-bold text-yellow-400 mb-1">KẾT QUẢ</h2>
+          <div className="text-3xl font-bold text-white my-2">
+            {score} <span className="text-lg text-yellow-400">điểm</span>
           </div>
         </div>
 
         {/* Voucher Section */}
         {voucher ? (
-          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 mb-4">
+          <div className="glass rounded-2xl p-4 mb-3">
             <div className="text-center">
-              <p className="text-green-200 text-sm mb-1">🎁 Chúc mừng! Bạn nhận được</p>
-              <p className="text-3xl font-bold text-white mb-2">
+              <p className="text-white/70 text-xs mb-1">🎁 Chúc mừng! Bạn nhận được</p>
+              <p className="text-2xl font-bold text-white mb-2">
                 VOUCHER {voucher.label}
               </p>
-              <div className="bg-white/20 rounded-xl p-3 flex items-center justify-between gap-2">
-                <code className="text-white font-mono text-lg flex-1 text-center">
+              <div className="bg-white/10 rounded-lg p-2 flex items-center justify-between gap-2 border border-white/20">
+                <code className="text-white font-mono text-sm flex-1 text-center font-bold">
                   {voucher.code}
                 </code>
                 <button
                   onClick={handleCopyVoucher}
-                  className="px-3 py-1 bg-white text-green-700 rounded-lg text-sm font-bold hover:bg-green-100 transition-colors"
-                >
-                  {copied ? '✓ Đã copy' : 'Copy'}
+                  className="px-3 py-1 bg-yellow-400 text-black rounded text-xs font-bold hover:bg-yellow-500 transition">
+                  {copied ? '✓' : 'Copy'}
                 </button>
               </div>
 
               {/* Email option */}
               {!emailSent ? (
-                <div className="mt-3 flex gap-2">
+                <div className="mt-2 flex gap-2">
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Nhập email nhận voucher"
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  />
+                    placeholder="Email nhận voucher"
+                    className="flex-1 px-2 py-1 rounded bg-white/10 text-white placeholder-white/50 text-xs focus:outline-none focus:ring-1 focus:ring-yellow-400 border border-white/20" />
                   <button
                     onClick={handleSendEmail}
                     disabled={!email || sending}
-                    className="px-4 py-2 bg-yellow-500 text-black font-bold rounded-lg text-sm disabled:opacity-50"
-                  >
+                    className="px-2 py-1 bg-yellow-400 text-black font-bold rounded text-xs disabled:opacity-50 hover:bg-yellow-500 transition">
                     {sending ? '...' : 'Gửi'}
                   </button>
                 </div>
               ) : (
-                <p className="mt-3 text-green-200 text-sm">✅ Đã gửi voucher đến email!</p>
+                <p className="mt-2 text-green-400 text-xs">✅ Đã gửi email!</p>
               )}
             </div>
           </div>
         ) : (
-          <div className="bg-white/10 rounded-2xl p-4 mb-4 text-center">
-            <p className="text-white/70">Đạt 10 điểm trở lên để nhận voucher!</p>
-            <div className="mt-2 text-sm text-white/50">
-              <p>≥ 10 điểm → 50K | ≥ 20 điểm → 100K | ≥ 30 điểm → 150K</p>
-            </div>
+          <div className="glass rounded-2xl p-4 mb-3 text-center">
+            <p className="text-white/80 text-sm mb-1">Đạt 10 điểm để nhận voucher!</p>
+            <p className="text-xs text-white/60">≥10đ → 50K | ≥20đ → 100K | ≥30đ → 150K</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="space-y-2">
+          {/* Share CTA */}
+          <button
+            onClick={handleShare}
+            className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm rounded-xl hover:from-green-600 hover:to-emerald-700 transition">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-lg">🎁</span>
+              <div>
+                <div className="text-xs text-green-100">Chia sẻ nhận</div>
+                <div className="font-bold">+1 LƯỢT MIỄN PHÍ</div>
+              </div>
+            </div>
+          </button>
+
           {playsRemaining > 0 ? (
             <button
               onClick={onPlayAgain}
-              className="w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-105 shadow-lg"
-            >
+              className="w-full py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-base rounded-xl hover:from-red-600 hover:to-red-700 transition">
               🎮 CHƠI LẠI ({playsRemaining} lượt)
             </button>
           ) : (
-            <div className="text-center py-4 bg-white/10 rounded-xl">
-              <p className="text-white/70 mb-2">Bạn đã hết lượt chơi hôm nay!</p>
-              <p className="text-yellow-400 text-sm">Giới thiệu bạn bè để có thêm lượt</p>
+            <div className="text-center py-3 bg-white/5 rounded-xl border border-white/10">
+              <p className="text-white/80 text-sm mb-1">Hết lượt chơi hôm nay!</p>
+              <p className="text-yellow-400 text-xs font-bold">👆 Chia sẻ để có thêm lượt</p>
             </div>
           )}
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleShare}
-              className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all"
-            >
-              📤 Chia sẻ
-            </button>
-            <button
-              onClick={onGoHome}
-              className="flex-1 py-3 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-all"
-            >
-              🏠 Trang chủ
-            </button>
-          </div>
+          <button
+            onClick={onGoHome}
+            className="w-full py-2.5 bg-white/10 text-white font-medium text-sm rounded-xl hover:bg-white/20 transition border border-white/20">
+            🏠 Trang chủ
+          </button>
         </div>
       </div>
     </div>

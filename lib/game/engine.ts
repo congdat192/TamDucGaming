@@ -42,6 +42,7 @@ export class SantaJumpGame {
   private lastSpeedIncrement: number = 0
   private currentSpeed: number = GAME_CONFIG.OBSTACLE_SPEED
   private currentGap: number = GAME_CONFIG.GAP_HEIGHT
+  private currentSpawnInterval: number = GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL  // Dynamic spawn interval
   private cameraOffset: number = 0  // For slide effect
   private previewObstacle: Obstacle | null = null  // Show obstacle during countdown
   private onScoreUpdate: (score: number) => void
@@ -94,14 +95,7 @@ export class SantaJumpGame {
     this.drawGround()
     this.drawSanta()
 
-    // Draw start text
-    this.ctx.fillStyle = '#FFFFFF'
-    this.ctx.font = 'bold 28px Arial'
-    this.ctx.textAlign = 'center'
-    this.ctx.fillText('TAP ĐỂ THỬ NHẢY', GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 50)
-
-    this.ctx.font = '16px Arial'
-    this.ctx.fillText('Tap để làm quen, sau đó đếm ngược bắt đầu', GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2)
+    // Text is now handled by React overlay in GameCanvas component
   }
 
   private drawBackground(): void {
@@ -303,8 +297,8 @@ export class SantaJumpGame {
   private updateObstacles(): void {
     const now = Date.now()
 
-    // Spawn new obstacle
-    if (now - this.lastObstacleTime > GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL) {
+    // Spawn new obstacle (using dynamic spawn interval)
+    if (now - this.lastObstacleTime > this.currentSpawnInterval) {
       const minHeight = GAME_CONFIG.MIN_OBSTACLE_HEIGHT
       const maxHeight = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.currentGap - minHeight
       const topHeight = Math.random() * (maxHeight - minHeight) + minHeight
@@ -333,13 +327,20 @@ export class SantaJumpGame {
     // Remove off-screen obstacles
     this.obstacles = this.obstacles.filter(o => o.x > -GAME_CONFIG.OBSTACLE_WIDTH)
 
-    // Increase difficulty
+    // Increase difficulty progressively
     if (now - this.lastSpeedIncrement > GAME_CONFIG.SPEED_INCREMENT_INTERVAL) {
+      // Increase speed
       if (this.currentSpeed < GAME_CONFIG.MAX_SPEED) {
         this.currentSpeed += GAME_CONFIG.SPEED_INCREMENT
       }
+      // Decrease gap (make it harder)
       if (this.currentGap > GAME_CONFIG.MIN_GAP) {
         this.currentGap -= GAME_CONFIG.GAP_DECREASE
+      }
+      // Decrease spawn interval (obstacles appear more frequently)
+      if (this.currentSpawnInterval > GAME_CONFIG.MIN_SPAWN_INTERVAL) {
+        this.currentSpawnInterval -= GAME_CONFIG.SPAWN_INTERVAL_DECREASE
+        this.currentSpawnInterval = Math.max(this.currentSpawnInterval, GAME_CONFIG.MIN_SPAWN_INTERVAL)
       }
       this.lastSpeedIncrement = now
     }
@@ -393,18 +394,8 @@ export class SantaJumpGame {
   }
 
   private drawPracticeHint(): void {
-    const elapsed = Date.now() - this.practiceStartTime
-    const remaining = Math.ceil((3000 - elapsed) / 1000)
-
-    // Draw hint during practice
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-    this.ctx.font = 'bold 18px Arial'
-    this.ctx.textAlign = 'center'
-    this.ctx.fillText('🎮 THỬ NHẢY! Tap liên tục để quen...', GAME_CONFIG.WIDTH / 2, 40)
-
-    this.ctx.fillStyle = 'rgba(255, 215, 0, 0.9)'
-    this.ctx.font = '14px Arial'
-    this.ctx.fillText(`Đếm ngược bắt đầu sau ${remaining} giây...`, GAME_CONFIG.WIDTH / 2, 65)
+    // Practice hint is now handled by React overlay in GameCanvas component
+    // No need to draw text here to avoid overlap
   }
 
   private practiceLoop = (): void => {
@@ -442,6 +433,36 @@ export class SantaJumpGame {
     // Draw ground
     this.drawGround()
 
+    // Draw static preview obstacles (not moving, just for demonstration)
+    const practiceElapsed = Date.now() - this.practiceStartTime
+
+    // Show 3 static obstacles at different positions
+    const staticObstacles = [
+      {
+        x: GAME_CONFIG.WIDTH * 0.7,
+        topHeight: 80,
+        bottomY: 80 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.85,
+        topHeight: 150,
+        bottomY: 150 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.55,
+        topHeight: 120,
+        bottomY: 120 + this.currentGap,
+        passed: false
+      }
+    ]
+
+    // Draw static obstacles with semi-transparent effect
+    this.ctx.globalAlpha = 0.6  // Make them semi-transparent
+    staticObstacles.forEach(obstacle => this.drawObstacle(obstacle))
+    this.ctx.globalAlpha = 1.0  // Reset opacity
+
     // Draw Santa
     this.drawSanta()
 
@@ -449,11 +470,12 @@ export class SantaJumpGame {
     this.drawPracticeHint()
 
     // Check if practice time is over (3 seconds)
-    const practiceElapsed = Date.now() - this.practiceStartTime
     if (practiceElapsed >= 3000) {
       this.phase = 'countdown'
       this.countdownStartTime = Date.now()
       this.cameraOffset = 0
+      // Clear practice obstacles
+      this.obstacles = []
       // Create preview obstacle to show during countdown
       const topHeight = GAME_CONFIG.HEIGHT / 2 - this.currentGap / 2 - 50
       this.previewObstacle = {
@@ -507,8 +529,8 @@ export class SantaJumpGame {
 
     // Update preview obstacle position (slide in from right)
     if (this.previewObstacle) {
-      // Move obstacle from right edge towards visible area
-      const targetX = GAME_CONFIG.WIDTH - 50  // Target position at edge
+      // Move obstacle from right edge towards more visible area
+      const targetX = GAME_CONFIG.WIDTH * 0.65  // Position at 65% of width for better visibility
       const startX = GAME_CONFIG.WIDTH + 100
       this.previewObstacle.x = startX - (slideProgress * (startX - targetX))
       this.drawObstacle(this.previewObstacle)
@@ -615,6 +637,10 @@ export class SantaJumpGame {
     }
   }
 
+  public getPhase(): GamePhase {
+    return this.phase
+  }
+
   private startPractice(): void {
     this.phase = 'practice'
     this.gameStarted = true
@@ -639,13 +665,16 @@ export class SantaJumpGame {
   }
 
   public reset(): void {
-    this.gameStarted = false
-    this.gameOver = false
-    this.phase = 'idle'
-    this.score = 0
     this.obstacles = []
+    this.score = 0
+    this.gameOver = false
+    this.gameStarted = false
+    this.phase = 'idle'
     this.currentSpeed = GAME_CONFIG.OBSTACLE_SPEED
     this.currentGap = GAME_CONFIG.GAP_HEIGHT
+    this.currentSpawnInterval = GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL  // Reset spawn interval
+    this.lastObstacleTime = 0
+    this.lastSpeedIncrement = 0
     this.santa.y = GAME_CONFIG.HEIGHT / 2
     this.santa.velocity = 0
     this.cameraOffset = 0

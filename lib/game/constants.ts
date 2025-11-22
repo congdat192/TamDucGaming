@@ -15,16 +15,18 @@ export const GAME_CONFIG = {
   // Obstacles
   OBSTACLE_WIDTH: 70,
   GAP_HEIGHT: 220,           // Khoảng trống rộng hơn (dễ hơn)
-  OBSTACLE_SPEED: 2.5,       // Chậm hơn lúc đầu
-  OBSTACLE_SPAWN_INTERVAL: 2000,
+  OBSTACLE_SPEED: 2,         // Bắt đầu chậm hơn (2 thay vì 2.5)
+  OBSTACLE_SPAWN_INTERVAL: 2500,  // Bắt đầu xa hơn (2.5s thay vì 2s)
   MIN_OBSTACLE_HEIGHT: 80,
 
-  // Difficulty
-  SPEED_INCREMENT: 0.08,     // Tăng tốc chậm hơn
-  SPEED_INCREMENT_INTERVAL: 8000,  // Tăng tốc ít thường xuyên hơn
-  MAX_SPEED: 6,              // Tốc độ tối đa thấp hơn
-  GAP_DECREASE: 3,           // Giảm gap chậm hơn
-  MIN_GAP: 150,              // Gap tối thiểu vẫn đủ rộng
+  // Difficulty - Progressive increase
+  SPEED_INCREMENT: 0.15,     // Tăng tốc nhanh hơn để đạt độ khó
+  SPEED_INCREMENT_INTERVAL: 5000,  // Tăng tốc mỗi 5s
+  MAX_SPEED: 5,              // Tốc độ tối đa vừa phải
+  GAP_DECREASE: 4,           // Giảm gap nhanh hơn
+  MIN_GAP: 160,              // Gap tối thiểu vẫn chơi được
+  SPAWN_INTERVAL_DECREASE: 100,  // Giảm khoảng cách spawn mỗi lần
+  MIN_SPAWN_INTERVAL: 1200,  // Khoảng cách tối thiểu giữa obstacles
 
   // Ground
   GROUND_HEIGHT: 80,

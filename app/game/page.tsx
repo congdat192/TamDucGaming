@@ -195,50 +195,27 @@ export default function GamePage() {
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button
             onClick={() => router.push('/')}
-            className="text-white/70 hover:text-white transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 backdrop-blur-sm"
           >
-            ← Quay lại
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
           </button>
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-white">🎅 SANTA JUMP</h1>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-red-400 hover:text-red-300 transition-colors text-sm"
-          >
-            Đăng xuất
-          </button>
+          <h1 className="text-xl font-bold text-white">🎅 SANTA JUMP</h1>
+          <div className="w-10"></div>
         </div>
       </header>
 
-      {/* Game Stats Bar */}
-      <div className="relative z-10 max-w-md mx-auto px-4 mb-2">
-        <div className="flex justify-between items-center bg-white/10 rounded-xl px-4 py-2">
-          {/* Total Score */}
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⭐</span>
-            <span className="text-white/70 text-sm">
-              Tổng: <span className="text-yellow-400 font-bold">{user?.total_score || 0}</span>
-            </span>
-          </div>
 
-          {/* Plays Counter */}
-          <div className="flex items-center gap-2 bg-yellow-500/20 px-3 py-1.5 rounded-full border border-yellow-500/50">
-            <span className="text-lg">🎮</span>
-            <span className="text-yellow-400 font-bold text-sm">
-              {playsRemaining === 999 ? '∞' : playsRemaining} lượt
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Game Area */}
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-2">
+      <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-2">
         <GameCanvas
           onGameOver={handleGameOver}
           onScoreUpdate={handleScoreUpdate}
           isPlaying={isPlaying}
           onStartGame={handleStartGame}
+          playsRemaining={playsRemaining}
         />
 
         {/* Instructions */}

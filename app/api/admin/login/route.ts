@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
+
+// Admin credentials từ environment variables
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'matkinhtamduc2024'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +18,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // For demo, allow default admin
-    if (username === 'admin' && password === 'admin123') {
+    // Verify admin credentials
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       const token = jwt.sign(
-        { adminId: 'default-admin', username: 'admin' },
+        { adminId: 'admin', username: ADMIN_USERNAME },
         JWT_SECRET,
         { expiresIn: '24h' }
       )
@@ -30,39 +32,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Check in database
-    const { data: admin, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('username', username)
-      .single()
-
-    if (error || !admin) {
-      return NextResponse.json(
-        { error: 'Sai tài khoản hoặc mật khẩu' },
-        { status: 401 }
-      )
-    }
-
-    // Verify password
-    const isValid = await bcrypt.compare(password, admin.password)
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Sai tài khoản hoặc mật khẩu' },
-        { status: 401 }
-      )
-    }
-
-    const token = jwt.sign(
-      { adminId: admin.id, username: admin.username },
-      JWT_SECRET,
-      { expiresIn: '24h' }
+    return NextResponse.json(
+      { error: 'Sai tài khoản hoặc mật khẩu' },
+      { status: 401 }
     )
-
-    return NextResponse.json({
-      success: true,
-      token
-    })
 
   } catch (error) {
     console.error('Admin login error:', error)

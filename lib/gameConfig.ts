@@ -55,10 +55,11 @@ export async function getGameConfig(): Promise<GameConfig> {
     }
 
     // Merge with defaults to ensure all fields exist
-    cachedConfig = { ...DEFAULT_CONFIG, ...data.config_data }
+    const newConfig: GameConfig = { ...DEFAULT_CONFIG, ...data.config_data }
+    cachedConfig = newConfig
     cacheTimestamp = now
 
-    return cachedConfig
+    return newConfig
   } catch (error) {
     console.error('Error fetching game config:', error)
     return DEFAULT_CONFIG

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { verifyToken, generateGameToken } from '@/lib/auth'
 import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 
 export async function POST(request: NextRequest) {
@@ -56,7 +57,8 @@ export async function POST(request: NextRequest) {
 
     if (user.last_play_date !== today) {
       playsToday = 0
-      await supabase
+      playsToday = 0
+      await supabaseAdmin
         .from('users')
         .update({
           plays_today: 0,
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Consume a play (free plays first, then bonus plays)
     if (freePlaysRemaining > 0) {
-      await supabase
+      await supabaseAdmin
         .from('users')
         .update({
           plays_today: playsToday + 1,
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', user.id)
     } else {
-      await supabase
+      await supabaseAdmin
         .from('users')
         .update({
           bonus_plays: bonusPlays - 1
@@ -94,9 +96,19 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id)
     }
 
+    // Generate Game Token
+    const sessionId = crypto.randomUUID()
+    const gameToken = generateGameToken({
+      sessionId,
+      userId: user.id,
+      startTime: Date.now()
+    })
+
     return NextResponse.json({
       success: true,
-      playsRemaining: totalPlaysRemaining - 1
+      playsRemaining: totalPlaysRemaining - 1,
+      gameToken,
+      sessionId
     })
 
   } catch (error) {

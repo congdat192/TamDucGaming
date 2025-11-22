@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { generateToken, generateReferralCode } from '@/lib/auth'
 import { cookies } from 'next/headers'
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark OTP as verified
-    await supabase
+    await supabaseAdmin
       .from('otp_codes')
       .update({ verified: true })
       .eq('id', otpRecord.id)
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       // Create new user
       const newReferralCode = generateReferralCode()
 
-      const { data: newUser, error: createError } = await supabase
+      const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
           phone: isEmailLogin ? null : phone,
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         if (referrer && referrer.id !== user.id) {
           // Create referral record
-          await supabase
+          await supabaseAdmin
             .from('referrals')
             .insert({
               referrer_id: referrer.id,
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Check if today is a new day, reset plays_today
     const today = new Date().toISOString().split('T')[0]
     if (user.last_play_date !== today) {
-      await supabase
+      await supabaseAdmin
         .from('users')
         .update({
           plays_today: 0,

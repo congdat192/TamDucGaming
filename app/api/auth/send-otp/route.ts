@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { generateOTP } from '@/lib/auth'
 import { Resend } from 'resend'
 
@@ -34,19 +35,19 @@ export async function POST(request: NextRequest) {
 
     // Delete old OTP codes for this identifier
     if (isEmailLogin) {
-      await supabase
+      await supabaseAdmin
         .from('otp_codes')
         .delete()
         .eq('email', email)
     } else {
-      await supabase
+      await supabaseAdmin
         .from('otp_codes')
         .delete()
         .eq('phone', phone)
     }
 
     // Store OTP in database
-    const { error: otpError } = await supabase
+    const { error: otpError } = await supabaseAdmin
       .from('otp_codes')
       .insert({
         phone: isEmailLogin ? null : phone,

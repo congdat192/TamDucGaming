@@ -10,6 +10,12 @@ export interface JWTPayload {
   email: string | null
 }
 
+export interface GameTokenPayload {
+  sessionId: string
+  userId: string
+  startTime: number
+}
+
 export function generateToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 }
@@ -17,6 +23,18 @@ export function generateToken(payload: JWTPayload): string {
 export function verifyToken(token: string): JWTPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload
+  } catch {
+    return null
+  }
+}
+
+export function generateGameToken(payload: GameTokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' })
+}
+
+export function verifyGameToken(token: string): GameTokenPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as GameTokenPayload
   } catch {
     return null
   }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifyToken, generateVoucherCode } from '@/lib/auth'
+import { verifyToken, generateVoucherCode, verifyGameToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig, getVoucherByScore } from '@/lib/gameConfig'
 
 export async function POST(request: NextRequest) {
@@ -24,11 +25,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { score } = await request.json()
+    const { score, gameToken } = await request.json()
 
     if (typeof score !== 'number' || score < 0) {
       return NextResponse.json(
         { error: 'Điểm không hợp lệ' },
+        { status: 400 }
+      )
+    }
+
+    // Verify Game Token
+    if (!gameToken) {
+      return NextResponse.json(
+        { error: 'Thiếu game token' },
+        { status: 400 }
+      )
+    }
+
+    const gamePayload = verifyGameToken(gameToken)
+    if (!gamePayload) {
+      return NextResponse.json(
+        { error: 'Game token không hợp lệ hoặc đã hết hạn' },
+        { status: 400 }
+      )
+    }
+
+    if (gamePayload.userId !== payload.userId) {
+      return NextResponse.json(
+        { error: 'Game token không khớp với người dùng' },
+        { status: 403 }
+      )
+    }
+
+    // Anti-Cheat: Check duration vs score
+    const currentTimestamp = Date.now()
+    const durationSeconds = (currentTimestamp - gamePayload.startTime) / 1000
+    const maxPossibleScore = Math.ceil(durationSeconds * 5) + 10 // 5 points/sec + 10 buffer
+
+    if (score > maxPossibleScore) {
+      console.warn(`[ANTI-CHEAT] Suspicious score: ${score} in ${durationSeconds}s (User: ${payload.userId})`)
+      return NextResponse.json(
+        { error: 'Điểm số không hợp lệ (nghi vấn hack)' },
         { status: 400 }
       )
     }
@@ -61,7 +98,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Save game session
-    await supabase
+    await supabaseAdmin
       .from('game_sessions')
       .insert({
         user_id: user.id,
@@ -70,7 +107,7 @@ export async function POST(request: NextRequest) {
       })
 
     // Update user's total score
-    await supabase
+    await supabaseAdmin
       .from('users')
       .update({
         total_score: user.total_score + score
@@ -94,7 +131,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (referrer) {
-        await supabase
+        await supabaseAdmin
           .from('users')
           .update({
             bonus_plays: referrer.bonus_plays + config.bonusPlaysForReferral
@@ -103,7 +140,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Mark referral as rewarded
-      await supabase
+      await supabaseAdmin
         .from('referrals')
         .update({ reward_given: true })
         .eq('id', referral.id)
@@ -118,7 +155,7 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date()
       expiresAt.setMonth(expiresAt.getMonth() + 1) // Voucher valid for 1 month
 
-      const { data: newVoucher, error: voucherError } = await supabase
+      const { data: newVoucher, error: voucherError } = await supabaseAdmin
         .from('vouchers')
         .insert({
           user_id: user.id,

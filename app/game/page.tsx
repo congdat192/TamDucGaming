@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import useSWR, { mutate } from 'swr'
 import GameCanvas from '@/components/GameCanvas'
 import GameOverModal from '@/components/GameOverModal'
 import ProfileModal from '@/components/ProfileModal'
@@ -35,34 +36,35 @@ export default function GamePage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentScore, setCurrentScore] = useState(0)
+  // Removed currentScore state to prevent re-renders
   const [showGameOver, setShowGameOver] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showAddPhone, setShowAddPhone] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
   const [voucher, setVoucher] = useState<Voucher | null>(null)
   const [playsRemaining, setPlaysRemaining] = useState(0)
+  const [gameToken, setGameToken] = useState<string | null>(null)
+
+  const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
+  const { data: authData, error: authError, isLoading } = useSWR('/api/auth/me', fetcher, {
+    revalidateOnFocus: true,
+    shouldRetryOnError: false
+  })
 
   useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    try {
-      const res = await fetch('/api/auth/me')
-      if (!res.ok) {
-        router.push('/')
-        return
-      }
-      const data = await res.json()
-      setUser(data.user)
-      calculatePlaysRemaining(data.user)
-    } catch (error) {
-      console.error('Auth check failed:', error)
+    if (authError) {
       router.push('/')
-    } finally {
-      setLoading(false)
     }
+    if (authData?.user) {
+      setUser(authData.user)
+      calculatePlaysRemaining(authData.user)
+    }
+  }, [authData, authError, router])
+
+  // Remove manual checkAuth, use mutate instead
+  const refreshAuth = () => {
+    mutate('/api/auth/me')
   }
 
   const calculatePlaysRemaining = (userData: User) => {
@@ -121,8 +123,11 @@ export default function GamePage() {
         setPlaysRemaining(data.playsRemaining)
       }
 
+      if (data.gameToken) {
+        setGameToken(data.gameToken)
+      }
+
       setIsPlaying(true)
-      setCurrentScore(0)
       setShowGameOver(false)
     } catch (error) {
       console.error('Failed to start game:', error)
@@ -130,7 +135,8 @@ export default function GamePage() {
   }
 
   const handleScoreUpdate = useCallback((score: number) => {
-    setCurrentScore(score)
+    // Do nothing to prevent re-render of parent
+    // Score is handled inside GameCanvas for display
   }, [])
 
   const handleGameOver = useCallback(async (score: number) => {
@@ -142,7 +148,7 @@ export default function GamePage() {
       const res = await fetch('/api/game/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score })
+        body: JSON.stringify({ score, gameToken })
       })
 
       const data = await res.json()
@@ -154,7 +160,7 @@ export default function GamePage() {
       }
 
       // Refresh user data
-      await checkAuth()
+      refreshAuth()
     } catch (error) {
       console.error('Failed to submit score:', error)
     }
@@ -172,7 +178,7 @@ export default function GamePage() {
     router.push('/')
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-white text-2xl">Đang tải...</div>
@@ -282,7 +288,7 @@ export default function GamePage() {
         onClose={() => setShowProfile(false)}
         user={user}
         onUserUpdate={() => {
-          checkAuth()
+          refreshAuth()
         }}
         onLogout={handleLogout}
       />
@@ -292,7 +298,7 @@ export default function GamePage() {
         isOpen={showAddPhone}
         onClose={() => setShowAddPhone(false)}
         onSuccess={() => {
-          checkAuth() // Refresh user data để cập nhật lượt chơi mới
+          refreshAuth() // Refresh user data để cập nhật lượt chơi mới
         }}
       />
 

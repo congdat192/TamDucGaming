@@ -75,9 +75,17 @@ export function generateOTP(email?: string): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-export function maskPhone(phone: string): string {
+export function maskPhone(phone: string | null | undefined): string {
+  if (!phone) return '******'
   if (phone.length < 6) return phone
   return phone.slice(0, 2) + '****' + phone.slice(-3)
+}
+
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return '******'
+  const [name, domain] = email.split('@')
+  if (name.length <= 3) return `***@${domain}`
+  return `${name.slice(0, 3)}***@${domain}`
 }
 
 export function generateReferralCode(): string {

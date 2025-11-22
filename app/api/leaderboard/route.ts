@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { maskPhone } from '@/lib/auth'
+import { maskPhone, maskEmail } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         leaderboardData = data.map((item: any) => ({
           userId: item.id,
           phone: item.phone,
+          email: item.email,
           totalScore: item.weekly_score,
           gamesPlayed: item.games_played
         }))
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         leaderboardData = data.map((item: any) => ({
           userId: item.id,
           phone: item.phone,
+          email: item.email,
           totalScore: item.monthly_score,
           gamesPlayed: item.games_played
         }))
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
         leaderboardData = data.map((item: any) => ({
           userId: item.id,
           phone: item.phone,
+          email: item.email,
           totalScore: item.total_score,
           gamesPlayed: item.games_played
         }))
@@ -64,6 +67,7 @@ export async function GET(request: NextRequest) {
           score,
           users!inner (
             phone,
+            email,
             referral_code
           )
         `)
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest) {
 
       if (!error && sessions) {
         // Aggregate in memory (Single Pass)
-        const userScores: Record<string, { phone: string; totalScore: number; gamesPlayed: number }> = {}
+        const userScores: Record<string, { phone: string; email: string; totalScore: number; gamesPlayed: number }> = {}
 
         for (const session of sessions) {
           const userId = session.user_id
@@ -80,6 +84,7 @@ export async function GET(request: NextRequest) {
           if (!userScores[userId]) {
             userScores[userId] = {
               phone: userData.phone,
+              email: userData.email,
               totalScore: 0,
               gamesPlayed: 0
             }
@@ -92,6 +97,7 @@ export async function GET(request: NextRequest) {
           .map(([userId, data]) => ({
             userId,
             phone: data.phone,
+            email: data.email,
             totalScore: data.totalScore,
             gamesPlayed: data.gamesPlayed
           }))
@@ -101,12 +107,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Format response
-    const leaderboard = leaderboardData.map((entry: any, index: number) => ({
-      rank: index + 1,
-      phone: maskPhone(entry.phone),
-      totalScore: entry.totalScore,
-      gamesPlayed: entry.gamesPlayed
-    }))
+    const leaderboard = leaderboardData.map((entry: any, index: number) => {
+      const identifier = entry.phone ? maskPhone(entry.phone) : maskEmail(entry.email)
+      return {
+        rank: index + 1,
+        phone: identifier, // Keep key as 'phone' for frontend compatibility, or change frontend to 'identifier'
+        totalScore: entry.totalScore,
+        gamesPlayed: entry.gamesPlayed
+      }
+    })
 
     // Get active campaigns
     const { data: campaigns } = await supabaseAdmin

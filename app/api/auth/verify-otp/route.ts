@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check OTP based on login type
-    let otpQuery = supabase
+    let otpQuery = supabaseAdmin
       .from('otp_codes')
       .select('*')
       .eq('code', otp)
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       .eq('id', otpRecord.id)
 
     // Check if user exists
-    let userQuery = supabase
+    let userQuery = supabaseAdmin
       .from('users')
       .select('*')
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
       // Process referral if provided
       if (referralCode && user) {
-        const { data: referrer } = await supabase
+        const { data: referrer } = await supabaseAdmin
           .from('users')
           .select('id')
           .eq('referral_code', referralCode.toUpperCase())

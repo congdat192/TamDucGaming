@@ -28,11 +28,12 @@ interface ProfileModalProps {
   onClose: () => void
   user: User | null
   onUserUpdate: () => void
+  onLogout?: () => void
 }
 
 type Tab = 'profile' | 'rewards'
 
-export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLogout }: ProfileModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -55,6 +56,14 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
       loadRewards()
     }
   }, [isOpen, activeTab])
+
+  useEffect(() => {
+    // Reset messages when modal opens
+    if (isOpen) {
+      setError('')
+      setSuccess('')
+    }
+  }, [isOpen])
 
   if (!isOpen || !user) return null
 
@@ -104,7 +113,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
   const handleAddPhone = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!phone || phone.length < 10) {
-      setError('Số điện thoại không hợp lệ')
+      setError('Số điện thoại không hợp lệ (cần 10 số)')
       return
     }
 
@@ -162,8 +171,11 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
     }
   }
 
-  // Check if user logged in via email but no phone
-  const needsPhone = user.email && !user.phone
+  // Check if user needs to add phone (logged in via email but no phone)
+  const canAddPhone = !user.phone
+
+  // Get display name
+  const displayName = user.name || (user.email ? user.email.split('@')[0] : user.phone) || 'Người chơi'
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -175,10 +187,20 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
           ✕
         </button>
 
-        {/* Header */}
-        <div className="text-center mb-4">
-          <div className="text-5xl mb-2">👤</div>
-          <h2 className="text-2xl font-bold text-white">HỒ SƠ CỦA TÔI</h2>
+        {/* Header - Avatar trái, thông tin phải */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+            <span className="text-3xl">🎅</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-white truncate">{displayName}</h2>
+            {user.email && (
+              <p className="text-white/80 text-sm truncate">📧 {user.email}</p>
+            )}
+            {user.phone && (
+              <p className="text-white/60 text-sm">📱 {user.phone}</p>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -238,8 +260,26 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
           <div className="space-y-4">
             {/* Basic Info Form */}
             <form onSubmit={handleUpdateProfile} className="space-y-3">
+              {/* Email Field - Read Only */}
+              {user.email && (
+                <div>
+                  <label className="block text-white mb-1 text-sm font-semibold">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className="w-full px-4 py-2 rounded-xl bg-white/5 border-2 border-white/20 text-white/70 cursor-not-allowed"
+                  />
+                </div>
+              )}
+
+              {/* Name Field */}
               <div>
-                <label className="block text-white mb-1 text-sm font-semibold">Tên hiển thị</label>
+                <label className="block text-white mb-1 text-sm font-semibold">
+                  Tên hiển thị
+                </label>
                 <input
                   type="text"
                   value={name}
@@ -249,66 +289,93 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
                 />
               </div>
 
+              {/* Phone Field - with bonus incentive if missing */}
               <div>
-                <label className="block text-white mb-1 text-sm font-semibold">Email</label>
-                <input
-                  type="email"
-                  value={user.email || ''}
-                  disabled
-                  className="w-full px-4 py-2 rounded-xl bg-white/5 border-2 border-white/20 text-white/70 cursor-not-allowed"
-                />
-              </div>
+                <label className="block text-white mb-1 text-sm font-semibold flex items-center gap-2">
+                  Số điện thoại
+                  {canAddPhone && (
+                    <span className="text-yellow-400 text-xs font-normal animate-pulse">
+                      🎁 +3 lượt chơi!
+                    </span>
+                  )}
+                </label>
 
-              {!needsPhone && (
-                <div>
-                  <label className="block text-white mb-1 text-sm font-semibold">Số điện thoại</label>
+                {canAddPhone ? (
+                  <>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Nhập số điện thoại (VD: 0912345678)"
+                      className="w-full px-4 py-2 rounded-xl bg-white/10 border-2 border-yellow-400/50 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none"
+                      maxLength={10}
+                    />
+                    <p className="text-yellow-400/80 text-xs mt-1">
+                      💡 Cập nhật số điện thoại để nhận thêm 3 lượt chơi miễn phí!
+                    </p>
+                  </>
+                ) : (
                   <input
                     type="tel"
                     value={user.phone || ''}
                     disabled
                     className="w-full px-4 py-2 rounded-xl bg-white/5 border-2 border-white/20 text-white/70 cursor-not-allowed"
                   />
-                </div>
-              )}
+                )}
+              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all"
-              >
-                {loading ? 'ĐANG LƯU...' : '💾 LƯU THAY ĐỔI'}
-              </button>
+              {/* Save Buttons */}
+              <div className="space-y-2">
+                {canAddPhone && phone.length >= 10 && (
+                  <button
+                    type="button"
+                    onClick={handleAddPhone}
+                    disabled={loading}
+                    className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-xl hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 transition-all transform hover:scale-[1.02]"
+                  >
+                    {loading ? 'ĐANG XỬ LÝ...' : '🎁 LƯU SĐT & NHẬN 3 LƯỢT CHƠI'}
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading || name === user.name}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all"
+                >
+                  {loading ? 'ĐANG LƯU...' : '💾 LƯU TÊN HIỂN THỊ'}
+                </button>
+              </div>
             </form>
 
-            {/* Phone Bonus Section - only show if user has email but no phone */}
-            {needsPhone && (
-              <div className="mt-6 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-xl p-4">
-                <div className="text-center mb-3">
-                  <span className="text-3xl">📱</span>
-                  <h3 className="text-yellow-400 font-bold text-lg">NHẬN 3 LƯỢT CHƠI MIỄN PHÍ!</h3>
-                  <p className="text-white/80 text-sm">Cập nhật số điện thoại để nhận ngay</p>
-                </div>
-
-                <form onSubmit={handleAddPhone} className="space-y-3">
-                  <div>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Nhập số điện thoại (VD: 0912345678)"
-                      className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-yellow-400/50 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-center"
-                      maxLength={10}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading || phone.length < 10}
-                    className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-xl hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 transition-all transform hover:scale-105"
-                  >
-                    {loading ? 'ĐANG XỬ LÝ...' : '🎁 NHẬN 3 LƯỢT CHƠI'}
-                  </button>
-                </form>
+            {/* Referral Code Copy */}
+            <div className="bg-black/20 rounded-xl p-3 text-center">
+              <p className="text-white/70 text-xs mb-1">Chia sẻ mã giới thiệu để nhận thêm lượt:</p>
+              <div className="flex items-center justify-center gap-2">
+                <code className="bg-yellow-400/20 text-yellow-400 px-3 py-1 rounded-lg font-mono font-bold">
+                  {user.referral_code}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(user.referral_code)
+                    setSuccess('Đã copy mã giới thiệu!')
+                  }}
+                  className="text-yellow-400 hover:text-yellow-300 text-sm"
+                >
+                  📋
+                </button>
               </div>
+            </div>
+
+            {/* Logout Button */}
+            {onLogout && (
+              <button
+                onClick={() => {
+                  onClose()
+                  onLogout()
+                }}
+                className="w-full py-3 bg-red-500/20 border border-red-500 text-red-400 font-bold rounded-xl hover:bg-red-500/30 transition-all"
+              >
+                🚪 ĐĂNG XUẤT
+              </button>
             )}
           </div>
         )}
@@ -389,16 +456,6 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate }: Pr
                 ))}
               </div>
             )}
-
-            {/* My Redeemed Rewards Link */}
-            <div className="text-center pt-2">
-              <button
-                onClick={() => {/* TODO: Show redeemed rewards */}}
-                className="text-yellow-400 underline text-sm"
-              >
-                Xem quà đã đổi →
-              </button>
-            </div>
           </div>
         )}
       </div>

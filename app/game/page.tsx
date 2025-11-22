@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import GameCanvas from '@/components/GameCanvas'
 import GameOverModal from '@/components/GameOverModal'
 import ProfileModal from '@/components/ProfileModal'
+import AddPhoneModal from '@/components/AddPhoneModal'
+import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 
 // Test accounts với unlimited plays
@@ -36,6 +38,7 @@ export default function GamePage() {
   const [currentScore, setCurrentScore] = useState(0)
   const [showGameOver, setShowGameOver] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [showAddPhone, setShowAddPhone] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
   const [voucher, setVoucher] = useState<Voucher | null>(null)
   const [playsRemaining, setPlaysRemaining] = useState(0)
@@ -90,7 +93,13 @@ export default function GamePage() {
 
   const handleStartGame = async () => {
     if (playsRemaining <= 0) {
-      alert('Bạn đã hết lượt chơi! Giới thiệu bạn bè để có thêm lượt.')
+      // Nếu chưa có SĐT → hiện modal thêm SĐT để nhận 3 lượt
+      // Nếu đã có SĐT → phải mời bạn bè
+      if (user && !user.phone) {
+        setShowAddPhone(true)
+      } else {
+        alert('Bạn đã hết lượt chơi! Giới thiệu bạn bè để có thêm lượt.')
+      }
       return
     }
 
@@ -172,7 +181,7 @@ export default function GamePage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden pb-20">
       <Snowflakes />
 
       {/* Header */}
@@ -196,32 +205,29 @@ export default function GamePage() {
         </div>
       </header>
 
-      {/* User Info Bar */}
+      {/* Game Stats Bar */}
       <div className="relative z-10 max-w-md mx-auto px-4 mb-2">
-        <div className="flex justify-between items-center bg-white/10 rounded-lg px-4 py-2">
-          <button
-            onClick={() => setShowProfile(true)}
-            className="flex items-center gap-2 text-white/70 hover:text-white text-sm truncate max-w-[200px] transition-colors"
-          >
-            <span className="text-lg">👤</span>
-            <span>{user?.name || user?.email?.split('@')[0] || user?.phone || 'Guest'}</span>
-          </button>
-          <span className="text-yellow-400 font-bold">
-            {playsRemaining === 999 ? '∞' : playsRemaining} lượt
-          </span>
+        <div className="flex justify-between items-center bg-white/10 rounded-xl px-4 py-2">
+          {/* Total Score */}
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⭐</span>
+            <span className="text-white/70 text-sm">
+              Tổng: <span className="text-yellow-400 font-bold">{user?.total_score || 0}</span>
+            </span>
+          </div>
+
+          {/* Plays Counter */}
+          <div className="flex items-center gap-2 bg-yellow-500/20 px-3 py-1.5 rounded-full border border-yellow-500/50">
+            <span className="text-lg">🎮</span>
+            <span className="text-yellow-400 font-bold text-sm">
+              {playsRemaining === 999 ? '∞' : playsRemaining} lượt
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Game Area */}
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-4">
-        <div className="mb-4 text-center">
-          {user && (
-            <p className="text-white/70 text-sm">
-              Tổng điểm: <span className="text-yellow-400 font-bold">{user.total_score}</span>
-            </p>
-          )}
-        </div>
-
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-2">
         <GameCanvas
           onGameOver={handleGameOver}
           onScoreUpdate={handleScoreUpdate}
@@ -239,12 +245,21 @@ export default function GamePage() {
             {playsRemaining <= 0 && (
               <div className="bg-red-500/20 border border-red-500 rounded-xl p-4 max-w-sm">
                 <p className="text-red-300 mb-2">Bạn đã hết lượt chơi hôm nay!</p>
-                <button
-                  onClick={() => router.push('/referral')}
-                  className="text-yellow-400 underline text-sm"
-                >
-                  Giới thiệu bạn bè để có thêm lượt →
-                </button>
+                {user && !user.phone ? (
+                  <button
+                    onClick={() => setShowAddPhone(true)}
+                    className="text-yellow-400 underline text-sm font-semibold"
+                  >
+                    🎁 Cập nhật SĐT để nhận 3 lượt chơi →
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push('/referral')}
+                    className="text-yellow-400 underline text-sm"
+                  >
+                    Giới thiệu bạn bè để có thêm lượt →
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -269,7 +284,25 @@ export default function GamePage() {
         onUserUpdate={() => {
           checkAuth()
         }}
+        onLogout={handleLogout}
       />
+
+      {/* Add Phone Modal - hiển thị khi hết lượt và chưa có SĐT */}
+      <AddPhoneModal
+        isOpen={showAddPhone}
+        onClose={() => setShowAddPhone(false)}
+        onSuccess={() => {
+          checkAuth() // Refresh user data để cập nhật lượt chơi mới
+        }}
+      />
+
+      {/* Bottom Navigation - ẩn khi đang chơi game */}
+      {!isPlaying && (
+        <BottomNavigation
+          onProfileClick={() => setShowProfile(true)}
+          showProfile={true}
+        />
+      )}
     </main>
   )
 }

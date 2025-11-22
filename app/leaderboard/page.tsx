@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Snowflakes from '@/components/Snowflakes'
+import BottomNavigation from '@/components/BottomNavigation'
+import ProfileModal from '@/components/ProfileModal'
 
 interface LeaderboardEntry {
   rank: number
@@ -27,10 +29,27 @@ export default function LeaderboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [period, setPeriod] = useState<Period>('all')
   const [selectedCampaign, setSelectedCampaign] = useState<string>('')
+  const [showProfile, setShowProfile] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     fetchLeaderboard()
+    checkAuth()
   }, [period, selectedCampaign])
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const data = await res.json()
+        setIsLoggedIn(true)
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    }
+  }
 
   const fetchLeaderboard = async () => {
     setLoading(true)
@@ -71,7 +90,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden pb-20">
       <Snowflakes />
 
       {/* Header */}
@@ -203,6 +222,27 @@ export default function LeaderboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        onUserUpdate={checkAuth}
+        onLogout={async () => {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          setIsLoggedIn(false)
+          setUser(null)
+        }}
+      />
+
+      {/* Bottom Navigation - luôn hiển thị */}
+      <BottomNavigation
+        onProfileClick={() => setShowProfile(true)}
+        onLoginClick={() => router.push('/')}
+        isLoggedIn={isLoggedIn}
+        showProfile={true}
+      />
     </main>
   )
 }

@@ -9,13 +9,10 @@ interface LoginModalProps {
   referralCode?: string
 }
 
-type LoginType = 'phone' | 'email'
 type Step = 'input' | 'otp'
 
 export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }: LoginModalProps) {
-  const [loginType, setLoginType] = useState<LoginType>('phone')
   const [step, setStep] = useState<Step>('input')
-  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,14 +27,10 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
     setLoading(true)
 
     try {
-      const payload = loginType === 'email'
-        ? { email, referralCode }
-        : { phone, referralCode }
-
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ email, referralCode })
       })
 
       const data = await res.json()
@@ -65,14 +58,10 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
     setLoading(true)
 
     try {
-      const payload = loginType === 'email'
-        ? { email, otp, referralCode }
-        : { phone, otp, referralCode }
-
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ email, otp, referralCode })
       })
 
       const data = await res.json()
@@ -92,7 +81,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
 
   const handleClose = () => {
     setStep('input')
-    setPhone('')
     setEmail('')
     setOtp('')
     setError('')
@@ -100,25 +88,8 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
     onClose()
   }
 
-  const switchLoginType = (type: LoginType) => {
-    setLoginType(type)
-    setStep('input')
-    setPhone('')
-    setEmail('')
-    setOtp('')
-    setError('')
-    setDebugOtp(null)
-  }
-
-  const getDisplayIdentifier = () => {
-    return loginType === 'email' ? email : phone
-  }
-
-  const isInputValid = () => {
-    if (loginType === 'email') {
-      return email.includes('@') && email.length > 3
-    }
-    return phone.length >= 10
+  const isEmailValid = () => {
+    return email.includes('@') && email.length > 3
   }
 
   return (
@@ -138,39 +109,11 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
           </h2>
           <p className="text-green-200">
             {step === 'input'
-              ? (loginType === 'email' ? 'Nhập email để bắt đầu chơi' : 'Nhập số điện thoại để bắt đầu chơi')
-              : `Nhập mã OTP đã gửi đến ${getDisplayIdentifier()}`
+              ? 'Nhập email để bắt đầu chơi'
+              : `Nhập mã OTP đã gửi đến ${email}`
             }
           </p>
         </div>
-
-        {/* Login Type Tabs - only show on input step */}
-        {step === 'input' && (
-          <div className="flex mb-4 bg-black/20 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => switchLoginType('phone')}
-              className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all ${
-                loginType === 'phone'
-                  ? 'bg-yellow-400 text-green-900'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              📱 Điện thoại
-            </button>
-            <button
-              type="button"
-              onClick={() => switchLoginType('email')}
-              className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all ${
-                loginType === 'email'
-                  ? 'bg-yellow-400 text-green-900'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              📧 Email
-            </button>
-          </div>
-        )}
 
         {error && (
           <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 rounded-lg mb-4 text-center">
@@ -180,37 +123,21 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
 
         {step === 'input' ? (
           <form onSubmit={handleSendOTP} className="space-y-4">
-            {loginType === 'phone' ? (
-              <div>
-                <label className="block text-white mb-2 font-semibold">Số điện thoại</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  placeholder="0912345678"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-white/30 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg"
-                  maxLength={10}
-                  required
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-white mb-2 font-semibold">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-white/30 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg"
-                  required
-                  autoFocus
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-white mb-2 font-semibold">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-white/30 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg"
+                required
+                autoFocus
+              />
+            </div>
             <button
               type="submit"
-              disabled={loading || !isInputValid()}
+              disabled={loading || !isEmailValid()}
               className="w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-xl rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
             >
               {loading ? 'ĐANG GỬI...' : 'GỬI MÃ OTP'}
@@ -247,7 +174,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
               }}
               className="w-full py-2 text-white/70 hover:text-white transition-colors"
             >
-              ← {loginType === 'email' ? 'Đổi email' : 'Đổi số điện thoại'}
+              ← Đổi email
             </button>
           </form>
         )}
@@ -255,9 +182,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
         <p className="text-center text-green-300 text-xs mt-6 bg-black/20 rounded-lg p-2">
           {step === 'otp' && debugOtp
             ? `💡 Demo OTP: ${debugOtp}`
-            : loginType === 'phone'
-              ? '💡 Demo: Mã OTP mặc định là 123456'
-              : '📧 OTP sẽ được gửi qua email (hoặc xem console)'
+            : '📧 Mã OTP sẽ được gửi đến email của bạn'
           }
         </p>
       </div>

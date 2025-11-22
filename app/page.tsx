@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LoginModal from '@/components/LoginModal'
 import ProfileModal from '@/components/ProfileModal'
+import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 
 function HomeContent() {
@@ -51,22 +52,11 @@ function HomeContent() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden pb-20">
       <Snowflakes />
 
       {/* Header */}
-      <header className="relative z-10 pt-8 pb-4 text-center">
-        {/* Profile Icon - Top Left */}
-        {isLoggedIn && user && (
-          <button
-            onClick={() => setShowProfile(true)}
-            className="absolute top-4 left-4 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all border-2 border-yellow-400"
-            title="Hồ sơ của tôi"
-          >
-            <span className="text-2xl">👤</span>
-          </button>
-        )}
-
+      <header className="relative z-10 pt-2 pb-4 text-center">
         <div className="christmas-lights h-1 mb-4"></div>
         <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-lg mb-2">
           🎅 SANTA JUMP 🎄
@@ -124,31 +114,13 @@ function HomeContent() {
           )}
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex gap-4 flex-wrap justify-center">
-          <a
-            href="/leaderboard"
-            className="px-6 py-3 bg-yellow-500/20 border border-yellow-500 text-yellow-400 rounded-full hover:bg-yellow-500/30 transition-all"
-          >
-            🏆 Bảng Xếp Hạng
-          </a>
-          {isLoggedIn && (
-            <button
-              onClick={() => router.push('/referral')}
-              className="px-6 py-3 bg-green-500/20 border border-green-500 text-green-400 rounded-full hover:bg-green-500/30 transition-all"
-            >
-              👥 Giới Thiệu Bạn
-            </button>
-          )}
-        </div>
-
         {/* How to Play */}
         <div className="mt-8 glass rounded-2xl p-6 max-w-md w-full">
           <h3 className="text-xl font-bold text-white mb-4 text-center">📖 Cách Chơi</h3>
           <ol className="space-y-3 text-green-200 text-sm">
             <li className="flex items-start gap-2">
               <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">1</span>
-              <span>Đăng nhập bằng số điện thoại</span>
+              <span>Đăng nhập bằng email</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs">2</span>
@@ -186,6 +158,19 @@ function HomeContent() {
         onClose={() => setShowProfile(false)}
         user={user}
         onUserUpdate={checkAuth}
+        onLogout={async () => {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          setIsLoggedIn(false)
+          setUser(null)
+        }}
+      />
+
+      {/* Bottom Navigation - luôn hiển thị */}
+      <BottomNavigation
+        onProfileClick={() => setShowProfile(true)}
+        onLoginClick={() => setShowLogin(true)}
+        isLoggedIn={isLoggedIn}
+        showProfile={true}
       />
     </main>
   )

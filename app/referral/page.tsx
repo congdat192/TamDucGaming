@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Snowflakes from '@/components/Snowflakes'
+import BottomNavigation from '@/components/BottomNavigation'
+import ProfileModal from '@/components/ProfileModal'
 
 interface ReferralData {
   referralCode: string
@@ -17,10 +19,24 @@ export default function ReferralPage() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<ReferralData | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     fetchReferralData()
   }, [])
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    }
+  }
 
   const fetchReferralData = async () => {
     try {
@@ -31,6 +47,7 @@ export default function ReferralPage() {
       }
       const referralData = await res.json()
       setData(referralData)
+      checkAuth() // Also fetch user data for profile
     } catch (error) {
       console.error('Failed to fetch referral data:', error)
       router.push('/')
@@ -73,7 +90,7 @@ export default function ReferralPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden pb-20">
       <Snowflakes />
 
       {/* Header */}
@@ -180,6 +197,25 @@ export default function ReferralPage() {
           </div>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        onUserUpdate={checkAuth}
+        onLogout={async () => {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          router.push('/')
+        }}
+      />
+
+      {/* Bottom Navigation */}
+      <BottomNavigation
+        onProfileClick={() => setShowProfile(true)}
+        isLoggedIn={true}
+        showProfile={true}
+      />
     </main>
   )
 }

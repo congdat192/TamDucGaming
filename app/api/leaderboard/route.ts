@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { maskPhone } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     let leaderboardData: any[] = []
 
     if (period === 'week') {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('leaderboard_weekly')
         .select('*')
         .limit(limit)
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
         }))
       }
     } else if (period === 'month') {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('leaderboard_monthly')
         .select('*')
         .limit(limit)
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         }))
       }
     } else if (period === 'all') {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('leaderboard_all_time')
         .select('*')
         .limit(limit)
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
     } else if (period === 'campaign' && campaignId) {
       // For campaign, we don't have a view, so we query game_sessions directly
       // BUT we include 'score' in the first query to avoid N+1
-      const { data: sessions, error } = await supabase
+      const { data: sessions, error } = await supabaseAdmin
         .from('game_sessions')
         .select(`
           user_id,
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Get active campaigns
-    const { data: campaigns } = await supabase
+    const { data: campaigns } = await supabaseAdmin
       .from('campaigns')
       .select('id, name, start_date, end_date')
       .eq('is_active', true)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { DEFAULT_CONFIG, clearConfigCache } from '@/lib/gameConfig'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
@@ -15,33 +16,6 @@ function verifyAdminToken(request: NextRequest): boolean {
   } catch {
     return false
   }
-}
-
-// Default config values
-const DEFAULT_CONFIG = {
-  // Gameplay
-  maxPlaysPerDay: 1,
-  bonusPlaysForPhone: 3,
-  bonusPlaysForReferral: 1,
-
-  // Voucher tiers
-  voucherTiers: [
-    { minScore: 30, value: 150000, label: '150K' },
-    { minScore: 20, value: 100000, label: '100K' },
-    { minScore: 10, value: 50000, label: '50K' },
-  ],
-
-  // Leaderboard prizes
-  leaderboardPrizes: [
-    { rank: 1, value: 500000 },
-    { rank: 2, value: 300000 },
-    { rank: 3, value: 200000 },
-    { rank: '4-10', value: 100000 },
-  ],
-
-  // Test accounts
-  testEmails: ['test@test.com', 'admin@matkinhtamduc.com', 'congdat192@gmail.com'],
-  testPhones: ['0909999999', '0123456789'],
 }
 
 export async function GET(request: NextRequest) {
@@ -94,12 +68,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Save config error:', error)
-      // Still return success if table doesn't exist - config will use defaults
       return NextResponse.json({
-        success: true,
-        message: 'Config saved (note: game_config table may need to be created)'
-      })
+        success: false,
+        error: 'Lỗi lưu config: ' + error.message
+      }, { status: 500 })
     }
+
+    // Clear cache so new config takes effect immediately
+    clearConfigCache()
 
     return NextResponse.json({
       success: true,

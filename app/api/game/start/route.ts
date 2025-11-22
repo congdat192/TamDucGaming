@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
-
-const MAX_PLAYS_PER_DAY = 1
-
-// Test accounts với unlimited plays
-const TEST_PHONES = ['0909999999', '0123456789']
-const TEST_EMAILS = ['test@test.com', 'admin@matkinhtamduc.com', 'congdat192@gmail.com']
+import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +24,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get config from database
+    const config = await getGameConfig()
+
     // Get user
     const { data: user, error } = await supabase
       .from('users')
@@ -44,9 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Test account - unlimited plays
-    const isTestPhone = user.phone && TEST_PHONES.includes(user.phone)
-    const isTestEmail = user.email && TEST_EMAILS.includes(user.email)
-    if (isTestPhone || isTestEmail) {
+    if (isTestAccount(config, user.email, user.phone)) {
       return NextResponse.json({
         success: true,
         playsRemaining: 999
@@ -69,8 +65,8 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id)
     }
 
-    // Check if user has plays remaining
-    const freePlaysRemaining = MAX_PLAYS_PER_DAY - playsToday
+    // Check if user has plays remaining (using config from DB)
+    const freePlaysRemaining = config.maxPlaysPerDay - playsToday
     const totalPlaysRemaining = freePlaysRemaining + bonusPlays
 
     if (totalPlaysRemaining <= 0) {

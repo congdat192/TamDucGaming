@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
-
-const PHONE_BONUS_PLAYS = 3
+import { getGameConfig } from '@/lib/gameConfig'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +25,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { phone } = await request.json()
+
+    // Get config from database
+    const config = await getGameConfig()
 
     // Validate phone
     if (!phone || phone.length < 10) {
@@ -71,12 +73,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update user with phone and add bonus plays
+    // Update user with phone and add bonus plays (using config from DB)
+    const bonusPlays = config.bonusPlaysForPhone
     const { error: updateError } = await supabase
       .from('users')
       .update({
         phone,
-        bonus_plays: (user.bonus_plays || 0) + PHONE_BONUS_PLAYS
+        bonus_plays: (user.bonus_plays || 0) + bonusPlays
       })
       .eq('id', payload.userId)
 
@@ -90,8 +93,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Đã thêm ${PHONE_BONUS_PLAYS} lượt chơi! Cảm ơn bạn đã cập nhật số điện thoại.`,
-      bonusPlays: PHONE_BONUS_PLAYS
+      message: `Đã thêm ${bonusPlays} lượt chơi! Cảm ơn bạn đã cập nhật số điện thoại.`,
+      bonusPlays
     })
 
   } catch (error) {

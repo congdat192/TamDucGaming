@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken, generateVoucherCode } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
-import { getVoucherByScore, VOUCHER_TIERS } from '@/lib/voucher'
+import { getGameConfig, getVoucherByScore } from '@/lib/gameConfig'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Get config from database
+    const config = await getGameConfig()
 
     // Get user
     const { data: user, error: userError } = await supabase
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (referral) {
-      // Give bonus play to referrer
+      // Give bonus play to referrer (using config from DB)
       const { data: referrer } = await supabase
         .from('users')
         .select('bonus_plays')
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
         await supabase
           .from('users')
           .update({
-            bonus_plays: referrer.bonus_plays + 1
+            bonus_plays: referrer.bonus_plays + config.bonusPlaysForReferral
           })
           .eq('id', referral.referrer_id)
       }
@@ -106,8 +109,8 @@ export async function POST(request: NextRequest) {
         .eq('id', referral.id)
     }
 
-    // Check if user qualifies for voucher
-    const voucherTier = getVoucherByScore(score)
+    // Check if user qualifies for voucher (using config from DB)
+    const voucherTier = getVoucherByScore(config, score)
     let voucher = null
 
     if (voucherTier) {

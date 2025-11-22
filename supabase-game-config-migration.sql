@@ -28,10 +28,26 @@ INSERT INTO game_config (id, config_data) VALUES (
 -- Enable RLS
 ALTER TABLE game_config ENABLE ROW LEVEL SECURITY;
 
--- Policy: Allow read for all (public config)
+-- Policy: Allow read for all
 CREATE POLICY "Allow public read" ON game_config
   FOR SELECT USING (true);
 
--- Policy: Only service role can update
-CREATE POLICY "Service role can update" ON game_config
-  FOR ALL USING (auth.role() = 'service_role');
+-- Policy: Allow insert/update/delete for all (admin API handles auth)
+CREATE POLICY "Allow all writes" ON game_config
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow all updates" ON game_config
+  FOR UPDATE USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all deletes" ON game_config
+  FOR DELETE USING (true);
+
+-- ========================================
+-- FIX: Nếu đã chạy migration trước đó, chạy lệnh này để sửa policy:
+-- ========================================
+-- DROP POLICY IF EXISTS "Service role can update" ON game_config;
+-- DROP POLICY IF EXISTS "Allow public read" ON game_config;
+-- CREATE POLICY "Allow public read" ON game_config FOR SELECT USING (true);
+-- CREATE POLICY "Allow all writes" ON game_config FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Allow all updates" ON game_config FOR UPDATE USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow all deletes" ON game_config FOR DELETE USING (true);

@@ -51,14 +51,30 @@ export async function GET(request: NextRequest) {
       user.plays_today = 0
     }
 
+    // Get total referrals
+    const { count: totalReferrals } = await supabase
+      .from('referrals')
+      .select('*', { count: 'exact', head: true })
+      .eq('referrer_id', user.id)
+
+    // Get total games played
+    const { count: totalGamesPlayed } = await supabase
+      .from('game_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
     return NextResponse.json({
       user: {
         id: user.id,
         phone: user.phone,
+        email: user.email,
+        name: user.name,
         referral_code: user.referral_code,
         plays_today: user.plays_today,
         bonus_plays: user.bonus_plays,
-        total_score: user.total_score
+        total_score: user.total_score,
+        total_referrals: totalReferrals || 0,
+        total_games_played: totalGamesPlayed || 0
       }
     })
 

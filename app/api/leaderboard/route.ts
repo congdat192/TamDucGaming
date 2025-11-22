@@ -107,15 +107,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Format response
-    const leaderboard = leaderboardData.map((entry: any, index: number) => {
-      const identifier = entry.phone ? maskPhone(entry.phone) : maskEmail(entry.email)
-      return {
-        rank: index + 1,
-        phone: identifier, // Keep key as 'phone' for frontend compatibility, or change frontend to 'identifier'
-        totalScore: entry.totalScore,
-        gamesPlayed: entry.gamesPlayed
-      }
-    })
+    const leaderboard = leaderboardData.map((entry: any, index: number) => ({
+      rank: index + 1,
+      phone: entry.phone ? maskPhone(entry.phone) : null,
+      email: entry.email ? maskEmail(entry.email) : null,
+      totalScore: entry.totalScore,
+      gamesPlayed: entry.gamesPlayed
+    }))
 
     // Get active campaigns
     const { data: campaigns } = await supabaseAdmin

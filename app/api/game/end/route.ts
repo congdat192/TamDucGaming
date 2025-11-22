@@ -4,6 +4,9 @@ import { verifyToken, generateVoucherCode, verifyGameToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig, getVoucherByScore } from '@/lib/gameConfig'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
       // Give bonus play to referrer (using config from DB)
       const { data: referrer } = await supabase
         .from('users')
-        .select('bonus_plays')
+        .select('bonus_plays, email')
         .eq('id', referral.referrer_id)
         .single()
 
@@ -137,6 +140,44 @@ export async function POST(request: NextRequest) {
             bonus_plays: referrer.bonus_plays + config.bonusPlaysForReferral
           })
           .eq('id', referral.referrer_id)
+
+        // Send email notification to referrer
+        if (referrer.email) {
+          try {
+            await resend.emails.send({
+              from: 'Santa Jump <gaming@matkinhtamduc.com>',
+              to: referrer.email,
+              subject: '🎁 Bạn nhận được lượt chơi mới!',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 30px; border-radius: 15px; text-align: center;">
+                    <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎅 SANTA JUMP 🎄</h1>
+                    <p style="color: #22c55e; margin: 10px 0; font-size: 18px;">Mắt Kính Tâm Đức</p>
+                  </div>
+                  <div style="background: #f0f9ff; padding: 30px; border-radius: 15px; margin-top: 20px; text-align: center;">
+                    <h2 style="color: #1e3a5f; margin-top: 0;">Chúc mừng! 🎉</h2>
+                    <p style="color: #333; font-size: 16px; line-height: 1.5;">
+                      Bạn bè của bạn đã tham gia trò chơi và hoàn thành lượt chơi đầu tiên.
+                    </p>
+                    <div style="background: #22c55e; color: white; font-size: 24px; font-weight: bold; padding: 15px 30px; border-radius: 10px; display: inline-block; margin: 20px 0;">
+                      +${config.bonusPlaysForReferral} Lượt Chơi
+                    </div>
+                    <p style="color: #666; font-size: 14px;">
+                      Hãy vào game ngay để sử dụng lượt chơi mới nhé!
+                    </p>
+                    <a href="https://game-noel.vercel.app" style="display: inline-block; background: #FFD700; color: #000; text-decoration: none; font-weight: bold; padding: 12px 24px; border-radius: 25px; margin-top: 10px;">Chơi Ngay</a>
+                  </div>
+                  <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">
+                    By Chief Everything Officer
+                  </p>
+                </div>
+              `
+            })
+            console.log(`[REFERRAL EMAIL] Sent to ${referrer.email}`)
+          } catch (emailError) {
+            console.error('Failed to send referral email:', emailError)
+          }
+        }
       }
 
       // Mark referral as rewarded

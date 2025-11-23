@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { getVietnamDate } from '@/lib/date'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,8 +38,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if today is a new day, reset plays_today
-    const today = new Date().toISOString().split('T')[0]
+
+
+    // Check if today is a new day (Vietnam Time), reset plays_today
+    const today = getVietnamDate()
     if (user.last_play_date !== today) {
       await supabase
         .from('users')

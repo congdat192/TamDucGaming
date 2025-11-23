@@ -46,6 +46,15 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
   const [rewards, setRewards] = useState<Reward[]>([])
   const [loadingRewards, setLoadingRewards] = useState(false)
   const [redeeming, setRedeeming] = useState<string | null>(null)
+  const [config, setConfig] = useState({ maxPlaysPerDay: 3 }) // Default fallback
+
+  useEffect(() => {
+    // Fetch public config
+    fetch('/api/config/public')
+      .then(res => res.json())
+      .then(data => setConfig(data.config))
+      .catch(err => console.error('Failed to load config:', err))
+  }, [])
 
   useEffect(() => {
     if (user) {
@@ -230,7 +239,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
           <div className="flex justify-between items-center">
             <span className="text-white/60 text-sm">Lượt chơi đang có:</span>
             <span className="text-green-400 font-bold text-base">
-              {Math.max(0, 3 - (user.plays_today || 0)) + user.bonus_plays}
+              {Math.max(0, config.maxPlaysPerDay - (user.plays_today || 0)) + user.bonus_plays}
             </span>
           </div>
 

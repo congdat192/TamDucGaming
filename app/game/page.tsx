@@ -9,7 +9,7 @@ import ProfileModal from '@/components/ProfileModal'
 import AddPhoneModal from '@/components/AddPhoneModal'
 import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
-import Snowflakes from '@/components/Snowflakes'
+// import Snowflakes from '@/components/Snowflakes'
 // import { useBGM } from '@/hooks/useBGM'
 
 // Test accounts với unlimited plays
@@ -206,7 +206,7 @@ export default function GamePage() {
 
   return (
     <main className="min-h-screen relative overflow-hidden pb-20">
-      <Snowflakes />
+      {/* <Snowflakes /> */}
 
       {/* Header */}
       <header className="relative z-10 py-4 px-4">

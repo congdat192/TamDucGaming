@@ -143,9 +143,6 @@ export class SantaJumpGame {
       height: GAME_CONFIG.SANTA_HEIGHT
     }
 
-    // Initialize snowflakes
-    this.initSnowflakes()
-
     // Initialize background cache
     this.initBackgroundCache()
 
@@ -153,20 +150,9 @@ export class SantaJumpGame {
     this.drawStartScreen()
   }
 
-  private initSnowflakes(): void {
-    for (let i = 0; i < 50; i++) {
-      this.snowflakes.push({
-        x: Math.random() * GAME_CONFIG.WIDTH,
-        y: Math.random() * GAME_CONFIG.HEIGHT,
-        size: Math.random() * 3 + 1,
-        speed: Math.random() * 2 + 1
-      })
-    }
-  }
-
   private drawStartScreen(): void {
     this.drawBackground()
-    this.drawSnow()
+    // this.drawSnow() // Removed snow
     this.drawGround()
     this.drawSanta()
 
@@ -174,7 +160,6 @@ export class SantaJumpGame {
   }
 
   private backgroundCanvas: HTMLCanvasElement | null = null
-
 
 
   private initBackgroundCache(): void {
@@ -212,24 +197,6 @@ export class SantaJumpGame {
   private drawBackground(): void {
     if (this.backgroundCanvas) {
       this.ctx.drawImage(this.backgroundCanvas, 0, 0)
-    }
-  }
-
-  private drawSnow(): void {
-    this.ctx.fillStyle = '#FFFFFF'
-    for (const flake of this.snowflakes) {
-      // Optimization: Draw squares instead of circles
-      this.ctx.fillRect(flake.x, flake.y, flake.size, flake.size)
-
-      // Update position
-      flake.y += flake.speed
-      // Optimization: Simplified horizontal movement
-      flake.x += Math.sin(flake.y * 0.05) * 0.5
-
-      if (flake.y > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
-        flake.y = 0
-        flake.x = Math.random() * GAME_CONFIG.WIDTH
-      }
     }
   }
 
@@ -527,7 +494,7 @@ export class SantaJumpGame {
 
     // Draw background elements
     this.drawBackground()
-    this.drawSnow()
+    // this.drawSnow() // Removed snow
 
     // Update Santa physics (with ground boundary)
     this.santa.velocity += this.mechanics.gravity
@@ -640,7 +607,7 @@ export class SantaJumpGame {
 
     // Draw background elements
     this.drawBackground()
-    this.drawSnow()
+    // this.drawSnow() // Removed snow
 
     // Update preview obstacle position (slide in from right)
     if (this.previewObstacle) {
@@ -705,7 +672,7 @@ export class SantaJumpGame {
 
     // Draw background elements
     this.drawBackground()
-    this.drawSnow()
+    // this.drawSnow() // Removed snow
 
     // Update Santa physics
     this.santa.velocity += this.mechanics.gravity

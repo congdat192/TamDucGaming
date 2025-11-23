@@ -64,6 +64,10 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
           playCollectStar: () => sfxRef.current.playCollectStar(),
           playHitBomb: () => sfxRef.current.playHitBomb(),
           playGameOver: () => sfxRef.current.playGameOver()
+        },
+        // Event-driven phase updates instead of polling
+        (phase) => {
+          setIsPracticeMode(phase === 'practice')
         }
       )
     }
@@ -81,6 +85,7 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
     if (!isPlaying) {
       gameRef.current.reset()
       setCurrentScore(0)
+      setIsPracticeMode(false)
     }
   }, [isPlaying])
 
@@ -104,23 +109,6 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleInteraction])
 
-  // Poll game phase to detect practice mode
-  useEffect(() => {
-    if (!isPlaying || !gameRef.current) {
-      setIsPracticeMode(false)
-      return
-    }
-
-    const interval = setInterval(() => {
-      if (gameRef.current) {
-        const phase = gameRef.current.getPhase()
-        setIsPracticeMode(phase === 'practice')
-      }
-    }, 100)
-
-    return () => clearInterval(interval)
-  }, [isPlaying])
-
   return (
     <div
       className="relative flex flex-col items-center select-none"
@@ -132,18 +120,31 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
       onTouchEnd={(e) => {
         e.preventDefault()
       }}
-      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      style={{
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+        // GPU acceleration
+        transform: 'translateZ(0)',
+        willChange: 'transform'
+      }}
     >
       <canvas
         ref={canvasRef}
         className="border-4 border-yellow-400 rounded-2xl shadow-2xl cursor-pointer"
-        style={{ maxWidth: '100%', height: 'auto', touchAction: 'manipulation' }}
+        style={{
+          maxWidth: '100%',
+          height: 'auto',
+          touchAction: 'manipulation',
+          // GPU acceleration for canvas
+          transform: 'translateZ(0)',
+          willChange: 'transform'
+        }}
       />
 
       {/* Score Display - Simplified for performance */}
       {isPlaying && !isPracticeMode && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-          <div className="bg-black/50 px-6 py-2 rounded-full border border-white/30 backdrop-blur-sm">
+          <div className="bg-black/60 px-6 py-2 rounded-full border border-white/30">
             <span className="text-white font-bold text-3xl font-mono">
               {currentScore}
             </span>

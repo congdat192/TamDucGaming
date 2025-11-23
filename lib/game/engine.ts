@@ -48,6 +48,9 @@ export class SantaJumpGame {
   private santaBox = { left: 0, right: 0, top: 0, bottom: 0 } // Reusable collision box
   private onScoreUpdate: (score: number) => void
   private onGameOver: (finalScore: number) => void
+  private onPhaseChange?: (phase: GamePhase) => void // Event-driven phase updates
+  private obstaclePool: Obstacle[] = [] // Object pooling for obstacles
+  private lastJumpTime: number = 0 // Touch debouncing
   private mechanics: {
     gravity: number
     jumpForce: number
@@ -100,12 +103,14 @@ export class SantaJumpGame {
       playCollectStar: () => void
       playHitBomb: () => void
       playGameOver: () => void
-    }
+    },
+    onPhaseChange?: (phase: GamePhase) => void
   ) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.onScoreUpdate = onScoreUpdate
     this.onGameOver = onGameOver
+    this.onPhaseChange = onPhaseChange
     this.sfx = sfx
 
     // Use provided mechanics or fall back to GAME_CONFIG
@@ -407,6 +412,17 @@ export class SantaJumpGame {
     }
   }
 
+  private getObstacleFromPool(): Obstacle {
+    return this.obstaclePool.pop() || { x: 0, topHeight: 0, bottomY: 0, passed: false }
+  }
+
+  private returnObstacleToPool(obstacle: Obstacle): void {
+    if (this.obstaclePool.length < 10) { // Max pool size
+      obstacle.passed = false
+      this.obstaclePool.push(obstacle)
+    }
+  }
+
   private updateObstacles(): void {
     const now = Date.now()
 
@@ -416,12 +432,12 @@ export class SantaJumpGame {
       const maxHeight = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.currentGap - minHeight
       const topHeight = Math.random() * (maxHeight - minHeight) + minHeight
 
-      this.obstacles.push({
-        x: GAME_CONFIG.WIDTH,
-        topHeight,
-        bottomY: topHeight + this.currentGap,
-        passed: false
-      })
+      const obstacle = this.getObstacleFromPool()
+      obstacle.x = GAME_CONFIG.WIDTH
+      obstacle.topHeight = topHeight
+      obstacle.bottomY = topHeight + this.currentGap
+      obstacle.passed = false
+      this.obstacles.push(obstacle)
 
       this.lastObstacleTime = now
     }
@@ -438,9 +454,10 @@ export class SantaJumpGame {
       }
     }
 
-    // Remove off-screen obstacles (Optimized to avoid creating new arrays)
+    // Remove off-screen obstacles and return to pool
     while (this.obstacles.length > 0 && this.obstacles[0].x < -this.mechanics.obstacleWidth) {
-      this.obstacles.shift()
+      const removed = this.obstacles.shift()
+      if (removed) this.returnObstacleToPool(removed)
     }
 
     // Increase difficulty progressively
@@ -742,8 +759,20 @@ export class SantaJumpGame {
     this.animationId = requestAnimationFrame(this.gameLoop)
   }
 
+  private setPhase(newPhase: GamePhase): void {
+    if (this.phase !== newPhase) {
+      this.phase = newPhase
+      this.onPhaseChange?.(newPhase)
+    }
+  }
+
   public jump(): void {
     if (this.gameOver) return
+
+    // Touch debouncing - prevent rapid taps (50ms minimum between jumps)
+    const now = Date.now()
+    if (now - this.lastJumpTime < 50) return
+    this.lastJumpTime = now
 
     if (this.phase === 'idle') {
       this.startPractice()

@@ -51,6 +51,9 @@ export class SantaJumpGame {
   private onPhaseChange?: (phase: GamePhase) => void // Event-driven phase updates
   private obstaclePool: Obstacle[] = [] // Object pooling for obstacles
   private lastJumpTime: number = 0 // Touch debouncing
+  private lastFrameTime: number = 0 // FPS limiting
+  private targetFPS: number = 30 // Target 30 FPS for mobile
+  private frameInterval: number = 1000 / 30 // ~33ms per frame
   private mechanics: {
     gravity: number
     jumpForce: number
@@ -449,6 +452,7 @@ export class SantaJumpGame {
       if (!obstacle.passed && obstacle.x + this.mechanics.obstacleWidth < this.santa.x) {
         obstacle.passed = true
         this.score++
+        // Call score update (already optimized with requestAnimationFrame in GameCanvas)
         this.onScoreUpdate(this.score)
         this.sfx?.playCollectStar()
       }
@@ -720,6 +724,17 @@ export class SantaJumpGame {
 
   private gameLoop = (): void => {
     if (this.gameOver || this.phase !== 'playing') return
+
+    // FPS limiting - Target 30 FPS
+    const now = performance.now()
+    const elapsed = now - this.lastFrameTime
+
+    if (elapsed < this.frameInterval) {
+      this.animationId = requestAnimationFrame(this.gameLoop)
+      return
+    }
+
+    this.lastFrameTime = now - (elapsed % this.frameInterval)
 
     // Clear canvas
     this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)

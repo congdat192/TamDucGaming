@@ -135,19 +135,19 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
 
       {/* Score Display - Redesigned with gradient and animations */}
       {isPlaying && !isPracticeMode && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
           <div className="relative">
             {/* Glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 rounded-full blur-xl opacity-60 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 rounded-full blur-lg opacity-50 animate-pulse"></div>
 
             {/* Score container */}
-            <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 px-8 py-3 rounded-full shadow-2xl border-4 border-white/50">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl animate-bounce">⭐</span>
-                <span className="text-white font-black text-4xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wider">
+            <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 px-5 py-2 rounded-full shadow-xl border-2 border-white/50">
+              <div className="flex items-center gap-2">
+                <span className="text-xl animate-bounce">⭐</span>
+                <span className="text-white font-black text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">
                   {currentScore}
                 </span>
-                <span className="text-3xl animate-bounce" style={{ animationDelay: '0.2s' }}>⭐</span>
+                <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>⭐</span>
               </div>
             </div>
           </div>

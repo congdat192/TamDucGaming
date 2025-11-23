@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { SantaJumpGame } from '@/lib/game/engine'
 import { getGameConfig } from '@/lib/gameConfig'
+import { useSFX } from '@/hooks/useSFX'
 
 interface GameCanvasProps {
   onGameOver: (score: number) => void
@@ -18,14 +19,18 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
   const [currentScore, setCurrentScore] = useState(0)
   const [isPracticeMode, setIsPracticeMode] = useState(false)
 
+  // Sound effects
+  const sfx = useSFX()
+
   const handleScoreUpdate = useCallback((score: number) => {
     setCurrentScore(score)
     onScoreUpdate(score)
   }, [onScoreUpdate])
 
   const handleGameOver = useCallback((finalScore: number) => {
+    sfx.playGameOver()
     onGameOver(finalScore)
-  }, [onGameOver])
+  }, [onGameOver, sfx])
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -38,7 +43,15 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
         canvasRef.current!,
         handleScoreUpdate,
         handleGameOver,
-        config.gameMechanics
+        config.gameMechanics,
+        {
+          playJump: sfx.playJump,
+          playCollectGift: sfx.playCollectGift,
+          playCollectGlasses: sfx.playCollectGlasses,
+          playCollectStar: sfx.playCollectStar,
+          playHitBomb: sfx.playHitBomb,
+          playGameOver: sfx.playGameOver
+        }
       )
     }
 

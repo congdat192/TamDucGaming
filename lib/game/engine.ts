@@ -91,12 +91,21 @@ export class SantaJumpGame {
       minGap: number
       spawnIntervalDecrease: number
       minSpawnInterval: number
+    },
+    sfx?: {
+      playJump: () => void
+      playCollectGift: () => void
+      playCollectGlasses: () => void
+      playCollectStar: () => void
+      playHitBomb: () => void
+      playGameOver: () => void
     }
   ) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.onScoreUpdate = onScoreUpdate
     this.onGameOver = onGameOver
+    this.sfx = sfx
 
     // Use provided mechanics or fall back to GAME_CONFIG
     this.mechanics = gameMechanics || {
@@ -384,6 +393,7 @@ export class SantaJumpGame {
         obstacle.passed = true
         this.score++
         this.onScoreUpdate(this.score)
+        this.sfx?.playCollectStar()
       }
     }
 
@@ -697,6 +707,7 @@ export class SantaJumpGame {
     // Allow jumping during practice, countdown, and playing
     if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'playing') {
       this.santa.velocity = this.mechanics.jumpForce
+      this.sfx?.playJump()
     }
   }
 

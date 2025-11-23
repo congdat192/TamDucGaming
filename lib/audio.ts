@@ -112,23 +112,55 @@ export class AudioManager {
     }
 
     // SFX Methods
+    // SFX Methods
+    preloadSFX(srcs: string[]) {
+        srcs.forEach(src => {
+            if (!this.sfxPool.has(src)) {
+                this.sfxPool.set(src, [])
+            }
+
+            // Create initial pool of 3 instances per sound
+            for (let i = 0; i < 3; i++) {
+                const audio = new Audio(src)
+                audio.preload = 'auto'
+                this.sfxPool.get(src)?.push(audio)
+            }
+        })
+    }
+
     playSFX(src: string, options: AudioOptions = {}) {
         if (this.sfxMuted) return
 
-        const audio = new Audio(src)
+        let pool = this.sfxPool.get(src)
+        if (!pool) {
+            pool = []
+            this.sfxPool.set(src, pool)
+        }
+
+        // Find an available audio instance (not paused means it's playing)
+        let audio = pool.find(a => a.paused)
+
+        if (!audio) {
+            // If pool is full (e.g. 5 instances), reuse the first one (cut off sound)
+            if (pool.length >= 5) {
+                audio = pool[0]
+                audio.currentTime = 0
+            } else {
+                // Create new instance
+                audio = new Audio(src)
+                pool.push(audio)
+            }
+        }
+
         audio.volume = (options.volume ?? this.sfxVolume) * (this.sfxMuted ? 0 : 1)
 
         const playPromise = audio.play()
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                console.log('SFX play prevented:', error)
+                // Auto-play policy or other error
+                // console.log('SFX play prevented:', error)
             })
         }
-
-        // Clean up after playing
-        audio.addEventListener('ended', () => {
-            audio.remove()
-        })
     }
 
     setSFXVolume(volume: number) {

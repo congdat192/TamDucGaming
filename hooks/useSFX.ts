@@ -1,11 +1,26 @@
 'use client'
 
 import { audioManager } from '@/lib/audio'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export function useSFX() {
     const [volume, setVolumeState] = useState(audioManager.getSFXVolume())
     const [isMuted, setIsMuted] = useState(audioManager.isSFXMuted())
+
+    useEffect(() => {
+        // Preload all SFX assets
+        audioManager.preloadSFX([
+            '/audio/sfx/jump.mp3',
+            '/audio/sfx/collect-gift.mp3',
+            '/audio/sfx/collect-glasses.mp3',
+            '/audio/sfx/collect-star.mp3',
+            '/audio/sfx/hit-bomb.mp3',
+            '/audio/sfx/game-over.mp3',
+            '/audio/sfx/button-click.mp3',
+            '/audio/sfx/modal-open.mp3',
+            '/audio/sfx/achievement.mp3'
+        ])
+    }, [])
 
     const playJump = () => {
         audioManager.playSFX('/audio/sfx/jump.mp3')

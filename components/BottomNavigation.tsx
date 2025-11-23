@@ -36,16 +36,17 @@ export default function BottomNavigation({
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a4d2e]/90 backdrop-blur-md border-t border-white/10 safe-area-bottom">
       <div className="max-w-md mx-auto flex justify-around items-center py-1 px-2">
-        {/* Profile Button */}
-        {showProfile && (
-          <button
-            onClick={handleProfileClick}
-            className="flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-all text-white/70 hover:text-white hover:bg-white/10 active:scale-95"
-          >
-            <span className="text-lg">👤</span>
-            <span className="text-[9px] font-medium">Hồ sơ</span>
-          </button>
-        )}
+        {/* Home Link */}
+        <Link
+          href="/"
+          className={`flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-all active:scale-95 ${pathname === '/'
+            ? 'bg-yellow-400/20 text-yellow-400'
+            : 'text-white/70 hover:text-white hover:bg-white/10'
+            }`}
+        >
+          <span className="text-lg">🏠</span>
+          <span className="text-[9px] font-medium">Trang chủ</span>
+        </Link>
 
         {/* Leaderboard */}
         <Link

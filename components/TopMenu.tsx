@@ -147,13 +147,23 @@ export default function TopMenu({
                     </Link>
 
                     {/* Audio Toggle */}
-                    <button
-                        onClick={toggleAudio}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/80 hover:bg-white/10 hover:text-white text-left"
-                    >
-                        <span className="text-xl">{isMuted ? '🔇' : '🔊'}</span>
-                        <span>Âm thanh: {isMuted ? 'Tắt' : 'Bật'}</span>
-                    </button>
+                    <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5">
+                        <div className="flex items-center gap-3 text-white/80">
+                            <span className="text-xl">{isMuted ? '🔇' : '🔊'}</span>
+                            <span>Âm thanh</span>
+                        </div>
+
+                        <button
+                            onClick={toggleAudio}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${!isMuted ? 'bg-green-500' : 'bg-gray-600'
+                                }`}
+                        >
+                            <div
+                                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${!isMuted ? 'left-7' : 'left-1'
+                                    }`}
+                            />
+                        </button>
+                    </div>
                 </nav>
 
                 {/* Footer Actions */}

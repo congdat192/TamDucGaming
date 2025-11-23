@@ -10,7 +10,7 @@ import AddPhoneModal from '@/components/AddPhoneModal'
 import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
-import { useBGM } from '@/hooks/useBGM'
+// import { useBGM } from '@/hooks/useBGM'
 
 // Test accounts với unlimited plays
 const TEST_PHONES = ['0909999999', '0123456789']
@@ -36,8 +36,8 @@ interface Voucher {
 export default function GamePage() {
   const router = useRouter()
 
-  // Background music
-  const bgm = useBGM('gameplay')
+  // Background music - Disabled for gameplay as requested
+  // const bgm = useBGM('gameplay')
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)

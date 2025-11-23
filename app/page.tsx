@@ -8,7 +8,6 @@ import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
 import TopMenu from '@/components/TopMenu'
-import AudioControls from '@/components/AudioControls'
 
 function HomeContent() {
   const router = useRouter()
@@ -71,7 +70,6 @@ function HomeContent() {
   return (
     <main className="h-[100dvh] relative overflow-hidden flex flex-col">
       <Snowflakes />
-      <AudioControls />
       <TopMenu
         isLoggedIn={isLoggedIn}
         onProfileClick={() => setShowProfile(true)}

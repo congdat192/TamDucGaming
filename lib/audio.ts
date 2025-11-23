@@ -141,6 +141,22 @@ export class AudioManager {
         this.saveSettings()
     }
 
+    // Master Mute
+    setMasterMute(muted: boolean) {
+        this.bgmMuted = muted
+        this.sfxMuted = muted
+
+        if (this.bgmAudio) {
+            this.bgmAudio.volume = this.bgmMuted ? 0 : this.bgmVolume
+        }
+
+        this.saveSettings()
+    }
+
+    isMasterMuted() {
+        return this.bgmMuted && this.sfxMuted
+    }
+
     // Getters
     getBGMVolume() { return this.bgmVolume }
     getSFXVolume() { return this.sfxVolume }

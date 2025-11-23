@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { audioManager } from '@/lib/audio'
 
 interface TopMenuProps {
     isLoggedIn?: boolean
@@ -18,13 +19,25 @@ export default function TopMenu({
     onLogoutClick
 }: TopMenuProps) {
     const [isOpen, setIsOpen] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
     const pathname = usePathname()
     const router = useRouter()
+
+    // Initialize audio state
+    useEffect(() => {
+        setIsMuted(audioManager.isMasterMuted())
+    }, [])
 
     // Close menu when route changes
     useEffect(() => {
         setIsOpen(false)
     }, [pathname])
+
+    const toggleAudio = () => {
+        const newMutedState = !isMuted
+        audioManager.setMasterMute(newMutedState)
+        setIsMuted(newMutedState)
+    }
 
     const handleProfileClick = () => {
         setIsOpen(false)
@@ -84,8 +97,8 @@ export default function TopMenu({
                     <Link
                         href="/"
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/'
-                                ? 'bg-yellow-400/20 text-yellow-400 font-bold'
-                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            ? 'bg-yellow-400/20 text-yellow-400 font-bold'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         <span className="text-xl">🏠</span>
@@ -103,8 +116,8 @@ export default function TopMenu({
                     <Link
                         href="/leaderboard"
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname.startsWith('/leaderboard')
-                                ? 'bg-yellow-400/20 text-yellow-400 font-bold'
-                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            ? 'bg-yellow-400/20 text-yellow-400 font-bold'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         <span className="text-xl">🏆</span>
@@ -114,8 +127,8 @@ export default function TopMenu({
                     <Link
                         href="/referral"
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/referral'
-                                ? 'bg-yellow-400/20 text-yellow-400 font-bold'
-                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            ? 'bg-yellow-400/20 text-yellow-400 font-bold'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         <span className="text-xl">🎁</span>
@@ -125,13 +138,22 @@ export default function TopMenu({
                     <Link
                         href="/rules"
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/rules'
-                                ? 'bg-yellow-400/20 text-yellow-400 font-bold'
-                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            ? 'bg-yellow-400/20 text-yellow-400 font-bold'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         <span className="text-xl">📜</span>
                         <span>Thể lệ & Giải thưởng</span>
                     </Link>
+
+                    {/* Audio Toggle */}
+                    <button
+                        onClick={toggleAudio}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/80 hover:bg-white/10 hover:text-white text-left"
+                    >
+                        <span className="text-xl">{isMuted ? '🔇' : '🔊'}</span>
+                        <span>Âm thanh: {isMuted ? 'Tắt' : 'Bật'}</span>
+                    </button>
                 </nav>
 
                 {/* Footer Actions */}

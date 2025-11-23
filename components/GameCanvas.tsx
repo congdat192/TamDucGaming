@@ -140,23 +140,13 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
         style={{ maxWidth: '100%', height: 'auto', touchAction: 'manipulation' }}
       />
 
-      {/* Score Display - Redesigned with gradient and animations */}
+      {/* Score Display - Simplified for performance */}
       {isPlaying && !isPracticeMode && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-          <div className="relative">
-            {/* Glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 rounded-full blur-lg opacity-50 animate-pulse"></div>
-
-            {/* Score container */}
-            <div className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 px-5 py-2 rounded-full shadow-xl border-2 border-white/50">
-              <div className="flex items-center gap-2">
-                <span className="text-xl animate-bounce">⭐</span>
-                <span className="text-white font-black text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">
-                  {currentScore}
-                </span>
-                <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>⭐</span>
-              </div>
-            </div>
+          <div className="bg-black/50 px-6 py-2 rounded-full border border-white/30 backdrop-blur-sm">
+            <span className="text-white font-bold text-3xl font-mono">
+              {currentScore}
+            </span>
           </div>
         </div>
       )}

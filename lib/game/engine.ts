@@ -45,6 +45,7 @@ export class SantaJumpGame {
   private currentSpawnInterval: number = 0  // Dynamic spawn interval
   private cameraOffset: number = 0  // For slide effect
   private previewObstacle: Obstacle | null = null  // Show obstacle during countdown
+  private santaBox = { left: 0, right: 0, top: 0, bottom: 0 } // Reusable collision box
   private onScoreUpdate: (score: number) => void
   private onGameOver: (finalScore: number) => void
   private mechanics: {
@@ -125,8 +126,8 @@ export class SantaJumpGame {
       minSpawnInterval: GAME_CONFIG.MIN_SPAWN_INTERVAL,
     }
 
-    // Set canvas size with pixel ratio handling (max 2 for performance)
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // Set canvas size with pixel ratio handling (Force 1 for max performance on mobile)
+    const dpr = 1
     this.canvas.width = GAME_CONFIG.WIDTH * dpr
     this.canvas.height = GAME_CONFIG.HEIGHT * dpr
     this.canvas.style.width = `${GAME_CONFIG.WIDTH}px`
@@ -437,8 +438,10 @@ export class SantaJumpGame {
       }
     }
 
-    // Remove off-screen obstacles
-    this.obstacles = this.obstacles.filter(o => o.x > -this.mechanics.obstacleWidth)
+    // Remove off-screen obstacles (Optimized to avoid creating new arrays)
+    while (this.obstacles.length > 0 && this.obstacles[0].x < -this.mechanics.obstacleWidth) {
+      this.obstacles.shift()
+    }
 
     // Increase difficulty progressively
     if (now - this.lastSpeedIncrement > this.mechanics.speedIncrementInterval) {
@@ -461,35 +464,38 @@ export class SantaJumpGame {
 
   private checkCollision(): boolean {
     const santa = this.santa
-    const santaBox = {
-      left: santa.x + 10,
-      right: santa.x + santa.width - 10,
-      top: santa.y + 5,
-      bottom: santa.y + santa.height - 5
-    }
+
+    // Update reusable box
+    this.santaBox.left = santa.x + 10
+    this.santaBox.right = santa.x + santa.width - 10
+    this.santaBox.top = santa.y + 5
+    this.santaBox.bottom = santa.y + santa.height - 5
 
     // Ground collision
-    if (santaBox.bottom > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
+    if (this.santaBox.bottom > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
       return true
     }
 
     // Ceiling collision
-    if (santaBox.top < 0) {
+    if (this.santaBox.top < 0) {
       return true
     }
 
     // Obstacle collision
     for (const obstacle of this.obstacles) {
-      const obsLeft = obstacle.x
-      const obsRight = obstacle.x + this.mechanics.obstacleWidth
+      // Optimization: Only check if obstacle is within horizontal range
+      if (obstacle.x > this.santaBox.right || obstacle.x + this.mechanics.obstacleWidth < this.santaBox.left) {
+        continue
+      }
 
-      if (santaBox.right > obsLeft && santaBox.left < obsRight) {
-        if (santaBox.top < obstacle.topHeight) {
-          return true
-        }
-        if (santaBox.bottom > obstacle.bottomY) {
-          return true
-        }
+      // Check top pipe
+      if (this.santaBox.top < obstacle.topHeight) {
+        return true
+      }
+
+      // Check bottom pipe
+      if (this.santaBox.bottom > obstacle.bottomY) {
+        return true
       }
     }
 

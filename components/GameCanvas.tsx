@@ -22,15 +22,21 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
   // Sound effects
   const sfx = useSFX()
 
+  // Create stable refs for SFX callbacks to avoid re-initialization
+  const sfxRef = useRef(sfx)
+  useEffect(() => {
+    sfxRef.current = sfx
+  }, [sfx])
+
   const handleScoreUpdate = useCallback((score: number) => {
     setCurrentScore(score)
     onScoreUpdate(score)
   }, [onScoreUpdate])
 
   const handleGameOver = useCallback((finalScore: number) => {
-    sfx.playGameOver()
+    sfxRef.current.playGameOver()
     onGameOver(finalScore)
-  }, [onGameOver, sfx])
+  }, [onGameOver])
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -45,12 +51,12 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
         handleGameOver,
         config.gameMechanics,
         {
-          playJump: sfx.playJump,
-          playCollectGift: sfx.playCollectGift,
-          playCollectGlasses: sfx.playCollectGlasses,
-          playCollectStar: sfx.playCollectStar,
-          playHitBomb: sfx.playHitBomb,
-          playGameOver: sfx.playGameOver
+          playJump: () => sfxRef.current.playJump(),
+          playCollectGift: () => sfxRef.current.playCollectGift(),
+          playCollectGlasses: () => sfxRef.current.playCollectGlasses(),
+          playCollectStar: () => sfxRef.current.playCollectStar(),
+          playHitBomb: () => sfxRef.current.playHitBomb(),
+          playGameOver: () => sfxRef.current.playGameOver()
         }
       )
     }

@@ -19,7 +19,7 @@ export interface GameConfig {
 export const DEFAULT_CONFIG: GameConfig = {
   maxPlaysPerDay: 1,
   bonusPlaysForPhone: 3,
-  bonusPlaysForReferral: 1,
+  bonusPlaysForReferral: 5,
   voucherTiers: [
     { minScore: 30, value: 150000, label: '150K' },
     { minScore: 20, value: 100000, label: '100K' },

@@ -55,91 +55,74 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="relative bg-gradient-to-b from-green-800 to-green-900 rounded-3xl p-6 max-w-md w-full border-4 border-yellow-400 shadow-2xl">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass rounded-3xl p-8 max-w-sm w-full border border-white/10 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in duration-300">
+
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 p-12 bg-yellow-500/20 blur-3xl rounded-full -mr-10 -mt-10"></div>
+        <div className="absolute bottom-0 left-0 p-12 bg-red-500/20 blur-3xl rounded-full -ml-10 -mb-10"></div>
+
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl w-8 h-8 flex items-center justify-center"
+          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-20"
         >
-          ✕
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="text-6xl mb-3 animate-bounce">🎁</div>
+        <div className="relative z-10 text-center">
+          {/* Hero Icon */}
+          <div className="mb-6 relative inline-block">
+            <div className="text-7xl animate-bounce">🎮</div>
+            <div className="absolute -bottom-2 -right-2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg rotate-12 whitespace-nowrap">
+              + 3 lượt chơi
+            </div>
+          </div>
+
           <h2 className="text-2xl font-bold text-white mb-2">
-            HẾT LƯỢT CHƠI!
+            Nhận thêm 3 lượt chơi
           </h2>
-          <p className="text-green-200">
-            Cập nhật số điện thoại để nhận ngay
+
+          <p className="text-white/70 mb-6 text-sm">
+            Cập nhật số điện thoại của bạn để nhận thêm lượt chơi
           </p>
-          <div className="mt-3 inline-block bg-yellow-500/30 border-2 border-yellow-400 rounded-xl px-4 py-2">
-            <span className="text-yellow-400 font-bold text-xl">+3 LƯỢT CHƠI MIỄN PHÍ</span>
-          </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 rounded-lg mb-4 text-center text-sm">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-xl mb-4 text-xs">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-white mb-2 font-semibold">
-              Số điện thoại của bạn
-            </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              placeholder="VD: 0912345678"
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-yellow-400/50 text-white placeholder-white/50 focus:border-yellow-400 focus:outline-none text-lg text-center"
-              maxLength={10}
-              required
-              autoFocus
-            />
-            <p className="text-white/60 text-xs mt-2 text-center">
-              Số điện thoại sẽ được sử dụng để liên hệ khi bạn đổi quà
-            </p>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                placeholder="Nhập số điện thoại..."
+                className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none text-lg text-center transition-all"
+                maxLength={10}
+                required
+                autoFocus
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading || phone.length < 10}
-            className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-xl rounded-xl hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 shadow-lg"
-          >
-            {loading ? 'ĐANG XỬ LÝ...' : '🎁 NHẬN 3 LƯỢT CHƠI'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading || phone.length < 10}
+              className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20"
+            >
+              {loading ? 'ĐANG XỬ LÝ...' : 'Cập nhật số điện thoại'}
+            </button>
+          </form>
 
-        {/* Skip option */}
-        <div className="mt-4 text-center">
           <button
             onClick={handleClose}
-            className="text-white/50 hover:text-white/70 text-sm underline transition-colors"
+            className="mt-4 text-white/40 hover:text-white/60 text-xs font-medium transition-colors"
           >
-            Để sau, tôi sẽ mời bạn bè
+            Để sau, tôi sẽ cập nhật sau
           </button>
-        </div>
-
-        {/* Benefits */}
-        <div className="mt-4 bg-black/20 rounded-xl p-3">
-          <p className="text-white/70 text-xs text-center mb-2">Lợi ích khi cập nhật số điện thoại:</p>
-          <ul className="text-green-300 text-xs space-y-1">
-            <li className="flex items-center gap-2">
-              <span>✓</span>
-              <span>Nhận ngay 3 lượt chơi miễn phí</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>✓</span>
-              <span>Dễ dàng liên hệ khi đổi voucher</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>✓</span>
-              <span>Nhận thông báo khuyến mãi đặc biệt</span>
-            </li>
-          </ul>
         </div>
       </div>
     </div>

@@ -88,9 +88,18 @@ export async function POST(request: NextRequest) {
       }
 
       user = newUser
+    }
 
-      // Process referral if provided
-      if (referralCode && user) {
+    // Process referral if provided (for both new and existing users)
+    if (referralCode && user) {
+      // Check if user already has a referrer
+      const { data: existingReferral } = await supabaseAdmin
+        .from('referrals')
+        .select('id')
+        .eq('referred_id', user.id)
+        .single()
+
+      if (!existingReferral) {
         const { data: referrer } = await supabaseAdmin
           .from('users')
           .select('id')
@@ -106,6 +115,8 @@ export async function POST(request: NextRequest) {
               referred_id: user.id,
               reward_given: false
             })
+
+          console.log(`Created referral: ${referrer.id} -> ${user.id}`)
         }
       }
     }

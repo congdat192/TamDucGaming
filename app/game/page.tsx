@@ -7,6 +7,7 @@ import GameCanvas from '@/components/GameCanvas'
 import GameOverModal from '@/components/GameOverModal'
 import ProfileModal from '@/components/ProfileModal'
 import AddPhoneModal from '@/components/AddPhoneModal'
+import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 
@@ -40,7 +41,9 @@ export default function GamePage() {
   const [showGameOver, setShowGameOver] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showAddPhone, setShowAddPhone] = useState(false)
+  const [showOutOfPlaysModal, setShowOutOfPlaysModal] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
+  const [pendingGameOver, setPendingGameOver] = useState(false)
   const [voucher, setVoucher] = useState<Voucher | null>(null)
   const [playsRemaining, setPlaysRemaining] = useState(0)
   const [gameToken, setGameToken] = useState<string | null>(null)
@@ -94,13 +97,18 @@ export default function GamePage() {
   }
 
   const handleStartGame = async () => {
+    // Prevent starting if Game Over modal is open
+    if (showGameOver) return
+
     if (playsRemaining <= 0) {
       // Nếu chưa có SĐT → hiện modal thêm SĐT để nhận 3 lượt
       // Nếu đã có SĐT → phải mời bạn bè
       if (user && !user.phone) {
         setShowAddPhone(true)
+        setShowOutOfPlaysModal(false)
       } else {
-        alert('Bạn đã hết lượt chơi! Giới thiệu bạn bè để có thêm lượt.')
+        setShowOutOfPlaysModal(true)
+        setShowAddPhone(false)
       }
       return
     }
@@ -165,8 +173,14 @@ export default function GamePage() {
       console.error('Failed to submit score:', error)
     }
 
-    setShowGameOver(true)
-  }, [])
+    // Logic: If user has no phone, show AddPhoneModal first
+    if (user && !user.phone) {
+      setShowAddPhone(true)
+      setPendingGameOver(true)
+    } else {
+      setShowGameOver(true)
+    }
+  }, [gameToken, user]) // Added user dependency
 
   const handlePlayAgain = () => {
     setShowGameOver(false)
@@ -257,6 +271,7 @@ export default function GamePage() {
         onPlayAgain={handlePlayAgain}
         onGoHome={handleGoHome}
         playsRemaining={playsRemaining}
+        referralCode={user?.referral_code}
       />
 
       {/* Profile Modal */}
@@ -273,10 +288,27 @@ export default function GamePage() {
       {/* Add Phone Modal - hiển thị khi hết lượt và chưa có SĐT */}
       <AddPhoneModal
         isOpen={showAddPhone}
-        onClose={() => setShowAddPhone(false)}
+        onClose={() => {
+          setShowAddPhone(false)
+          if (pendingGameOver) {
+            setShowGameOver(true)
+            setPendingGameOver(false)
+          }
+        }}
         onSuccess={() => {
           refreshAuth() // Refresh user data để cập nhật lượt chơi mới
+          if (pendingGameOver) {
+            setShowGameOver(true)
+            setPendingGameOver(false)
+          }
         }}
+      />
+
+      {/* Out of Plays Modal */}
+      <OutOfPlaysModal
+        isOpen={showOutOfPlaysModal}
+        onClose={() => setShowOutOfPlaysModal(false)}
+        referralCode={user?.referral_code}
       />
 
       {/* Bottom Navigation - ẩn khi đang chơi game */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getGameConfig, type GameConfig } from '@/lib/gameConfig'
+import { getGameConfig, type GameConfig, type VoucherTier } from '@/lib/gameConfig'
 
 interface Voucher {
   code: string
@@ -13,7 +13,8 @@ interface Voucher {
 interface GameOverModalProps {
   isOpen: boolean
   score: number
-  voucher: Voucher | null
+  totalScore: number
+  availableVouchers: VoucherTier[]
   onPlayAgain: () => void
   onGoHome: () => void
   playsRemaining: number
@@ -23,7 +24,8 @@ interface GameOverModalProps {
 export default function GameOverModal({
   isOpen,
   score,
-  voucher,
+  totalScore,
+  availableVouchers,
   onPlayAgain,
   onGoHome,
   playsRemaining,
@@ -35,6 +37,8 @@ export default function GameOverModal({
   const [emailSent, setEmailSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [config, setConfig] = useState<GameConfig | null>(null)
+  const [redeemedVoucher, setRedeemedVoucher] = useState<Voucher | null>(null)
+  const [redeeming, setRedeeming] = useState(false)
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -48,23 +52,47 @@ export default function GameOverModal({
 
   const modalContent = config.modalContent.gameOverModal
 
+  const handleRedeemVoucher = async (voucherTier: VoucherTier) => {
+    setRedeeming(true)
+    try {
+      const res = await fetch('/api/voucher/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minScore: voucherTier.minScore })
+      })
+
+      const data = await res.json()
+
+      if (data.success && data.voucher) {
+        setRedeemedVoucher(data.voucher)
+      } else {
+        alert(data.error || 'Không thể đổi voucher')
+      }
+    } catch (error) {
+      console.error('Failed to redeem voucher:', error)
+      alert('Đã xảy ra lỗi')
+    } finally {
+      setRedeeming(false)
+    }
+  }
+
   const handleCopyVoucher = () => {
-    if (voucher) {
-      navigator.clipboard.writeText(voucher.code)
+    if (redeemedVoucher) {
+      navigator.clipboard.writeText(redeemedVoucher.code)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
   }
 
   const handleSendEmail = async () => {
-    if (!email || !voucher) return
+    if (!email || !redeemedVoucher) return
     setSending(true)
 
     try {
       await fetch('/api/voucher/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, voucherCode: voucher.code })
+        body: JSON.stringify({ email, voucherCode: redeemedVoucher.code })
       })
       setEmailSent(true)
     } catch (error) {
@@ -106,112 +134,8 @@ export default function GameOverModal({
           <div className="text-3xl font-bold text-white my-2">
             {score} <span className="text-lg text-yellow-400">điểm</span>
           </div>
+          <p className="text-sm text-white/70">Tổng điểm: {totalScore}</p>
         </div>
-
-        {/* Voucher Section */}
-        {voucher ? (
-          <div className="glass rounded-2xl p-4 mb-3 animate-in fade-in zoom-in duration-300">
-            <div className="text-center">
-              <p className="text-white/70 text-xs mb-1">🎁 Chúc mừng! Bạn nhận được</p>
-              <p className="text-2xl font-bold text-white mb-2">
-                VOUCHER {voucher.label}
-              </p>
-              <div className="bg-white/10 rounded-lg p-2 flex items-center justify-between gap-2 border border-white/20">
-                <code className="text-white font-mono text-sm flex-1 text-center font-bold">
-                  {voucher.code}
-                </code>
-                <button
-                  onClick={handleCopyVoucher}
-                  className="px-3 py-1 bg-yellow-400 text-black rounded text-xs font-bold hover:bg-yellow-500 transition">
-                  {copied ? '✓' : 'Copy'}
-                </button>
-              </div>
-
-              {/* Email option */}
-              {!emailSent ? (
-                <div className="mt-2 flex gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email nhận voucher"
-                    className="flex-1 px-2 py-1 rounded bg-white/10 text-white placeholder-white/50 text-xs focus:outline-none focus:ring-1 focus:ring-yellow-400 border border-white/20" />
-                  <button
-                    onClick={handleSendEmail}
-                    disabled={!email || sending}
-                    className="px-2 py-1 bg-yellow-400 text-black font-bold rounded text-xs disabled:opacity-50 hover:bg-yellow-500 transition">
-                    {sending ? '...' : 'Gửi'}
-                  </button>
-                </div>
-              ) : (
-                <p className="mt-2 text-green-400 text-xs">✅ Đã gửi email!</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="glass rounded-2xl p-4 mb-4">
-            <p className="text-white/90 text-sm font-bold mb-3 text-center">Tiến độ nhận thưởng</p>
-
-            <div className="space-y-3">
-              {/* 50K Tier */}
-              <div className={`flex items-center gap-3 ${score >= 10 ? 'opacity-100' : 'opacity-50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${score >= 10 ? 'bg-green-500 border-green-400' : 'bg-white/10 border-white/20'}`}>
-                  {score >= 10 ? '✓' : '🔒'}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label50k}</span>
-                    <span className={score >= 10 ? 'text-green-400' : 'text-white/50'}>{Math.min(score, 10)}/10 điểm</span>
-                  </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-500"
-                      style={{ width: `${Math.min((score / 10) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 100K Tier */}
-              <div className={`flex items-center gap-3 ${score >= 20 ? 'opacity-100' : 'opacity-50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${score >= 20 ? 'bg-yellow-500 border-yellow-400' : 'bg-white/10 border-white/20'}`}>
-                  {score >= 20 ? '✓' : '🔒'}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label100k}</span>
-                    <span className={score >= 20 ? 'text-yellow-400' : 'text-white/50'}>{Math.min(score, 20)}/20 điểm</span>
-                  </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-500 transition-all duration-500"
-                      style={{ width: `${Math.min((score / 20) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 150K Tier */}
-              <div className={`flex items-center gap-3 ${score >= 30 ? 'opacity-100' : 'opacity-50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${score >= 30 ? 'bg-red-500 border-red-400' : 'bg-white/10 border-white/20'}`}>
-                  {score >= 30 ? '✓' : '🔒'}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label150k}</span>
-                    <span className={score >= 30 ? 'text-red-400' : 'text-white/50'}>{Math.min(score, 30)}/30 điểm</span>
-                  </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-500 transition-all duration-500"
-                      style={{ width: `${Math.min((score / 30) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Actions */}
         <div className="space-y-2">

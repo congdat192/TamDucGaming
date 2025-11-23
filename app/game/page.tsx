@@ -9,6 +9,7 @@ import ProfileModal from '@/components/ProfileModal'
 import AddPhoneModal from '@/components/AddPhoneModal'
 import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
+import { getGameConfig } from '@/lib/gameConfig'
 // import Snowflakes from '@/components/Snowflakes'
 // import { useBGM } from '@/hooks/useBGM'
 
@@ -59,6 +60,11 @@ export default function GamePage() {
     shouldRetryOnError: false
   })
 
+  // Auto scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
   useEffect(() => {
     if (authError) {
       router.push('/')
@@ -74,7 +80,7 @@ export default function GamePage() {
     mutate('/api/auth/me')
   }
 
-  const calculatePlaysRemaining = (userData: User) => {
+  const calculatePlaysRemaining = async (userData: User) => {
     // Test accounts have unlimited plays
     const isTestPhone = userData.phone && TEST_PHONES.includes(userData.phone)
     const isTestEmail = userData.email && TEST_EMAILS.includes(userData.email)
@@ -84,7 +90,9 @@ export default function GamePage() {
       return
     }
 
-    const maxPlaysPerDay = 1
+    // Fetch config from database to get maxPlaysPerDay
+    const config = await getGameConfig()
+    const maxPlaysPerDay = config.maxPlaysPerDay
     const usedPlays = userData.plays_today
     const bonusPlays = userData.bonus_plays
     const remaining = Math.max(0, maxPlaysPerDay - usedPlays) + bonusPlays
@@ -157,12 +165,15 @@ export default function GamePage() {
     userRef.current = user
   }, [user])
 
+  const [availableVouchers, setAvailableVouchers] = useState<any[]>([])
+  const [totalScore, setTotalScore] = useState(0)
+
   const handleGameOver = useCallback(async (score: number) => {
     setIsPlaying(false)
     setFinalScore(score)
 
     try {
-      // Submit score and get voucher
+      // Submit score and get available vouchers
       const res = await fetch('/api/game/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -171,10 +182,14 @@ export default function GamePage() {
 
       const data = await res.json()
 
-      if (data.voucher) {
-        setVoucher(data.voucher)
+      if (data.availableVouchers) {
+        setAvailableVouchers(data.availableVouchers)
       } else {
-        setVoucher(null)
+        setAvailableVouchers([])
+      }
+
+      if (data.totalScore !== undefined) {
+        setTotalScore(data.totalScore)
       }
 
       // Refresh user data
@@ -278,7 +293,8 @@ export default function GamePage() {
       <GameOverModal
         isOpen={showGameOver}
         score={finalScore}
-        voucher={voucher}
+        totalScore={totalScore}
+        availableVouchers={availableVouchers}
         onPlayAgain={handlePlayAgain}
         onGoHome={handleGoHome}
         playsRemaining={playsRemaining}

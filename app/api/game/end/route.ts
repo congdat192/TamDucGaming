@@ -132,10 +132,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user's total score
+    const newTotalScore = user.total_score + score
     const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({
-        total_score: user.total_score + score
+        total_score: newTotalScore
       })
       .eq('id', user.id)
 
@@ -213,41 +214,15 @@ export async function POST(request: NextRequest) {
         .eq('id', referral.id)
     }
 
-    // Check if user qualifies for voucher (using config from DB)
-    const voucherTier = getVoucherByScore(config, score)
-    let voucher = null
-
-    if (voucherTier) {
-      const voucherCode = generateVoucherCode()
-      const expiresAt = new Date()
-      expiresAt.setMonth(expiresAt.getMonth() + 1) // Voucher valid for 1 month
-
-      const { data: newVoucher, error: voucherError } = await supabaseAdmin
-        .from('vouchers')
-        .insert({
-          user_id: user.id,
-          code: voucherCode,
-          value: voucherTier.value,
-          score_earned: score,
-          expires_at: expiresAt.toISOString()
-        })
-        .select()
-        .single()
-
-      if (!voucherError && newVoucher) {
-        voucher = {
-          code: voucherCode,
-          value: voucherTier.value,
-          label: voucherTier.label
-        }
-      }
-    }
+    // Get available vouchers based on cumulative total_score
+    const { getAvailableVouchers } = await import('@/lib/gameConfig')
+    const availableVouchers = getAvailableVouchers(config, newTotalScore)
 
     return NextResponse.json({
       success: true,
       score,
-      totalScore: user.total_score + score,
-      voucher
+      totalScore: newTotalScore,
+      availableVouchers // Return list of vouchers user can choose from
     })
 
   } catch (error) {

@@ -72,6 +72,19 @@ export default function BottomNavigation({
           <span className="text-[9px] font-medium">Thể lệ</span>
         </Link>
 
+        {/* Voucher */}
+        <Link
+          href="/voucher"
+          onClick={handleReferralClick}
+          className={`flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-all active:scale-95 ${pathname === '/voucher'
+            ? 'bg-yellow-400/20 text-yellow-400'
+            : 'text-white/70 hover:text-white hover:bg-white/10'
+            }`}
+        >
+          <span className="text-lg">🎟️</span>
+          <span className="text-[9px] font-medium">Voucher</span>
+        </Link>
+
         {/* Referral */}
         <Link
           href="/referral"

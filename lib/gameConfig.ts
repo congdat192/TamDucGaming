@@ -269,7 +269,7 @@ export function isTestAccount(config: GameConfig, email: string | null, phone: s
   return false
 }
 
-// Get voucher by score
+// Get voucher by score (deprecated - use for backward compatibility)
 export function getVoucherByScore(config: GameConfig, score: number): VoucherTier | null {
   // Sort tiers by minScore descending to get highest applicable tier
   const sortedTiers = [...config.voucherTiers].sort((a, b) => b.minScore - a.minScore)
@@ -280,6 +280,13 @@ export function getVoucherByScore(config: GameConfig, score: number): VoucherTie
     }
   }
   return null
+}
+
+// Get all available vouchers user can redeem with their total score
+export function getAvailableVouchers(config: GameConfig, totalScore: number): VoucherTier[] {
+  return config.voucherTiers
+    .filter(tier => totalScore >= tier.minScore)
+    .sort((a, b) => b.value - a.value) // Sort by value descending (highest first)
 }
 
 // Clear cache (call after config update)

@@ -125,9 +125,13 @@ export class SantaJumpGame {
       minSpawnInterval: GAME_CONFIG.MIN_SPAWN_INTERVAL,
     }
 
-    // Set canvas size
-    this.canvas.width = GAME_CONFIG.WIDTH
-    this.canvas.height = GAME_CONFIG.HEIGHT
+    // Set canvas size with pixel ratio handling (max 2 for performance)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    this.canvas.width = GAME_CONFIG.WIDTH * dpr
+    this.canvas.height = GAME_CONFIG.HEIGHT * dpr
+    this.canvas.style.width = `${GAME_CONFIG.WIDTH}px`
+    this.canvas.style.height = `${GAME_CONFIG.HEIGHT}px`
+    this.ctx.scale(dpr, dpr)
 
     // Initialize dynamic values from mechanics
     this.currentSpeed = this.mechanics.obstacleSpeed
@@ -145,9 +149,123 @@ export class SantaJumpGame {
 
     // Initialize background cache
     this.initBackgroundCache()
+    this.initGroundCache()
+    this.initSantaCache()
 
     // Draw initial state
     this.drawStartScreen()
+  }
+
+  private groundCanvas: HTMLCanvasElement | null = null
+  private santaCanvas: HTMLCanvasElement | null = null
+
+  private initGroundCache(): void {
+    this.groundCanvas = document.createElement('canvas')
+    this.groundCanvas.width = GAME_CONFIG.WIDTH
+    this.groundCanvas.height = GAME_CONFIG.GROUND_HEIGHT
+    const ctx = this.groundCanvas.getContext('2d')!
+
+    // Snow layer
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, GAME_CONFIG.WIDTH, 20)
+
+    // Grass/ground
+    ctx.fillStyle = COLORS.christmas.green
+    ctx.fillRect(0, 20, GAME_CONFIG.WIDTH, GAME_CONFIG.GROUND_HEIGHT - 20)
+
+    // Snow bumps
+    ctx.fillStyle = '#FFFFFF'
+    for (let i = 0; i < GAME_CONFIG.WIDTH; i += 40) {
+      ctx.beginPath()
+      ctx.arc(i + 20, 10, 15, Math.PI, 0)
+      ctx.fill()
+    }
+
+    // Branding text
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.font = 'bold 12px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('Mắt Kính Tâm Đức - matkinhtamduc.com', GAME_CONFIG.WIDTH / 2, 45)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
+    ctx.font = '10px Arial'
+    ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, 60)
+  }
+
+  private initSantaCache(): void {
+    this.santaCanvas = document.createElement('canvas')
+    this.santaCanvas.width = GAME_CONFIG.SANTA_WIDTH
+    this.santaCanvas.height = GAME_CONFIG.SANTA_HEIGHT
+    const ctx = this.santaCanvas.getContext('2d')!
+    const width = GAME_CONFIG.SANTA_WIDTH
+    const height = GAME_CONFIG.SANTA_HEIGHT
+
+    // Draw Santa relative to 0,0
+    // Body (red suit)
+    ctx.fillStyle = COLORS.christmas.red
+    ctx.beginPath()
+    ctx.ellipse(width / 2, height * 0.6, width * 0.4, height * 0.35, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Belt
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(width * 0.15, height * 0.55, width * 0.7, height * 0.1)
+    ctx.fillStyle = COLORS.christmas.gold
+    ctx.fillRect(width * 0.35, height * 0.53, width * 0.3, height * 0.14)
+
+    // Head
+    ctx.fillStyle = '#FFE4C4'
+    ctx.beginPath()
+    ctx.arc(width / 2, height * 0.25, width * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Hat
+    ctx.fillStyle = COLORS.christmas.red
+    ctx.beginPath()
+    ctx.moveTo(width * 0.2, height * 0.2)
+    ctx.lineTo(width / 2, -height * 0.2) // Adjusted for local coords
+    ctx.lineTo(width * 0.8, height * 0.2)
+    ctx.closePath()
+    ctx.fill()
+
+    // Hat brim
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(width * 0.15, height * 0.15, width * 0.7, height * 0.1)
+
+    // Hat ball
+    ctx.beginPath()
+    ctx.arc(width / 2, -height * 0.15, width * 0.1, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Beard
+    ctx.fillStyle = '#FFFFFF'
+    ctx.beginPath()
+    ctx.ellipse(width / 2, height * 0.4, width * 0.25, height * 0.2, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Eyes
+    ctx.fillStyle = '#000000'
+    ctx.beginPath()
+    ctx.arc(width * 0.38, height * 0.22, 3, 0, Math.PI * 2)
+    ctx.arc(width * 0.62, height * 0.22, 3, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Cheeks
+    ctx.fillStyle = '#FFB6C1'
+    ctx.beginPath()
+    ctx.arc(width * 0.25, height * 0.3, 5, 0, Math.PI * 2)
+    ctx.arc(width * 0.75, height * 0.3, 5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Legs
+    ctx.fillStyle = COLORS.christmas.red
+    ctx.fillRect(width * 0.25, height * 0.8, width * 0.15, height * 0.2)
+    ctx.fillRect(width * 0.6, height * 0.8, width * 0.15, height * 0.2)
+
+    // Boots
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(width * 0.2, height * 0.92, width * 0.25, height * 0.1)
+    ctx.fillRect(width * 0.55, height * 0.92, width * 0.25, height * 0.1)
   }
 
   private drawStartScreen(): void {
@@ -202,103 +320,16 @@ export class SantaJumpGame {
 
   private drawGround(): void {
     const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT
-
-    // Snow layer
-    this.ctx.fillStyle = '#FFFFFF'
-    this.ctx.fillRect(0, groundY, GAME_CONFIG.WIDTH, 20)
-
-    // Grass/ground
-    this.ctx.fillStyle = COLORS.christmas.green
-    this.ctx.fillRect(0, groundY + 20, GAME_CONFIG.WIDTH, GAME_CONFIG.GROUND_HEIGHT - 20)
-
-    // Snow bumps
-    this.ctx.fillStyle = '#FFFFFF'
-    for (let i = 0; i < GAME_CONFIG.WIDTH; i += 40) {
-      this.ctx.beginPath()
-      this.ctx.arc(i + 20, groundY + 10, 15, Math.PI, 0)
-      this.ctx.fill()
+    if (this.groundCanvas) {
+      this.ctx.drawImage(this.groundCanvas, 0, groundY)
     }
-
-    // Branding text
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-    this.ctx.font = 'bold 12px Arial'
-    this.ctx.textAlign = 'center'
-    this.ctx.fillText('Mắt Kính Tâm Đức - matkinhtamduc.com', GAME_CONFIG.WIDTH / 2, groundY + 45)
-
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
-    this.ctx.font = '10px Arial'
-    this.ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, groundY + 60)
   }
 
   private drawSanta(): void {
-    const { x, y, width, height } = this.santa
-    const ctx = this.ctx
-
-    // Body (red suit)
-    ctx.fillStyle = COLORS.christmas.red
-    ctx.beginPath()
-    ctx.ellipse(x + width / 2, y + height * 0.6, width * 0.4, height * 0.35, 0, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Belt
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(x + width * 0.15, y + height * 0.55, width * 0.7, height * 0.1)
-    ctx.fillStyle = COLORS.christmas.gold
-    ctx.fillRect(x + width * 0.35, y + height * 0.53, width * 0.3, height * 0.14)
-
-    // Head
-    ctx.fillStyle = '#FFE4C4'
-    ctx.beginPath()
-    ctx.arc(x + width / 2, y + height * 0.25, width * 0.3, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Hat
-    ctx.fillStyle = COLORS.christmas.red
-    ctx.beginPath()
-    ctx.moveTo(x + width * 0.2, y + height * 0.2)
-    ctx.lineTo(x + width / 2, y - height * 0.2)
-    ctx.lineTo(x + width * 0.8, y + height * 0.2)
-    ctx.closePath()
-    ctx.fill()
-
-    // Hat brim
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(x + width * 0.15, y + height * 0.15, width * 0.7, height * 0.1)
-
-    // Hat ball
-    ctx.beginPath()
-    ctx.arc(x + width / 2, y - height * 0.15, width * 0.1, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Beard
-    ctx.fillStyle = '#FFFFFF'
-    ctx.beginPath()
-    ctx.ellipse(x + width / 2, y + height * 0.4, width * 0.25, height * 0.2, 0, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Eyes
-    ctx.fillStyle = '#000000'
-    ctx.beginPath()
-    ctx.arc(x + width * 0.38, y + height * 0.22, 3, 0, Math.PI * 2)
-    ctx.arc(x + width * 0.62, y + height * 0.22, 3, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Cheeks
-    ctx.fillStyle = '#FFB6C1'
-    ctx.beginPath()
-    ctx.arc(x + width * 0.25, y + height * 0.3, 5, 0, Math.PI * 2)
-    ctx.arc(x + width * 0.75, y + height * 0.3, 5, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Legs
-    ctx.fillStyle = COLORS.christmas.red
-    ctx.fillRect(x + width * 0.25, y + height * 0.8, width * 0.15, height * 0.2)
-    ctx.fillRect(x + width * 0.6, y + height * 0.8, width * 0.15, height * 0.2)
-
-    // Boots
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(x + width * 0.2, y + height * 0.92, width * 0.25, height * 0.1)
-    ctx.fillRect(x + width * 0.55, y + height * 0.92, width * 0.25, height * 0.1)
+    const { x, y } = this.santa
+    if (this.santaCanvas) {
+      this.ctx.drawImage(this.santaCanvas, x, y)
+    }
   }
 
   private drawObstacle(obstacle: Obstacle): void {

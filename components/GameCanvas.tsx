@@ -29,8 +29,15 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
   }, [sfx])
 
   const handleScoreUpdate = useCallback((score: number) => {
-    setCurrentScore(score)
-    onScoreUpdate(score)
+    // Only update local state if score changed
+    setCurrentScore(prev => {
+      if (prev !== score) {
+        // Defer parent update to next tick to avoid render thrashing
+        requestAnimationFrame(() => onScoreUpdate(score))
+        return score
+      }
+      return prev
+    })
   }, [onScoreUpdate])
 
   const handleGameOver = useCallback((finalScore: number) => {

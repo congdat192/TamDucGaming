@@ -1,50 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
-
-function verifyAdminToken(request: NextRequest): boolean {
+// Simple admin authentication
+function isAuthenticated(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) return false
+  if (!authHeader) return false
 
-  const token = authHeader.substring(7)
-  try {
-    jwt.verify(token, JWT_SECRET)
-    return true
-  } catch {
-    return false
-  }
+  const token = authHeader.replace('Bearer ', '')
+  return token.startsWith('admin-token')
 }
 
 export async function GET(request: NextRequest) {
   try {
-    if (!verifyAdminToken(request)) {
+    // Check authentication
+    if (!isAuthenticated(request)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Get stats
-    const [usersResult, gamesResult, vouchersResult, referralsResult] = await Promise.all([
-      supabase.from('users').select('id', { count: 'exact', head: true }),
-      supabase.from('game_sessions').select('id', { count: 'exact', head: true }),
-      supabase.from('vouchers').select('id', { count: 'exact', head: true }),
-      supabase.from('referrals').select('id', { count: 'exact', head: true })
-    ])
+    // Get total users
+    const { count: totalUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+
+    // Get total game sessions (from play_logs)
+    const { count: totalSessions } = await supabase
+      .from('play_logs')
+      .select('*', { count: 'exact', head: true })
+
+    // Get total vouchers issued
+    const { count: totalVouchers } = await supabase
+      .from('vouchers')
+      .select('*', { count: 'exact', head: true })
+
+    // Get active users (played in last 7 days)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    const { data: activePlayers } = await supabase
+      .from('play_logs')
+      .select('user_id')
+      .gte('created_at', sevenDaysAgo.toISOString())
+
+    const activeUsers = new Set(activePlayers?.map(p => p.user_id) || []).size
 
     return NextResponse.json({
-      totalUsers: usersResult.count || 0,
-      totalGames: gamesResult.count || 0,
-      totalVouchers: vouchersResult.count || 0,
-      totalReferrals: referralsResult.count || 0
+      totalUsers: totalUsers || 0,
+      totalSessions: totalSessions || 0,
+      totalVouchers: totalVouchers || 0,
+      activeUsers: activeUsers || 0
     })
 
   } catch (error) {
-    console.error('Admin stats error:', error)
+    console.error('Stats error:', error)
     return NextResponse.json(
-      { error: 'Đã xảy ra lỗi' },
+      { error: 'Failed to fetch stats' },
       { status: 500 }
     )
   }

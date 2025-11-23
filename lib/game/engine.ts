@@ -40,27 +40,82 @@ export class SantaJumpGame {
   private animationId: number | null = null
   private lastObstacleTime: number = 0
   private lastSpeedIncrement: number = 0
-  private currentSpeed: number = GAME_CONFIG.OBSTACLE_SPEED
-  private currentGap: number = GAME_CONFIG.GAP_HEIGHT
-  private currentSpawnInterval: number = GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL  // Dynamic spawn interval
+  private currentSpeed: number = 0
+  private currentGap: number = 0
+  private currentSpawnInterval: number = 0  // Dynamic spawn interval
   private cameraOffset: number = 0  // For slide effect
   private previewObstacle: Obstacle | null = null  // Show obstacle during countdown
   private onScoreUpdate: (score: number) => void
   private onGameOver: (finalScore: number) => void
+  private mechanics: {
+    gravity: number
+    jumpForce: number
+    maxFallSpeed: number
+    obstacleWidth: number
+    gapHeight: number
+    obstacleSpeed: number
+    spawnInterval: number
+    speedIncrement: number
+    speedIncrementInterval: number
+    maxSpeed: number
+    gapDecrease: number
+    minGap: number
+    spawnIntervalDecrease: number
+    minSpawnInterval: number
+  }
 
   constructor(
     canvas: HTMLCanvasElement,
     onScoreUpdate: (score: number) => void,
-    onGameOver: (finalScore: number) => void
+    onGameOver: (finalScore: number) => void,
+    gameMechanics?: {
+      gravity: number
+      jumpForce: number
+      maxFallSpeed: number
+      obstacleWidth: number
+      gapHeight: number
+      obstacleSpeed: number
+      spawnInterval: number
+      speedIncrement: number
+      speedIncrementInterval: number
+      maxSpeed: number
+      gapDecrease: number
+      minGap: number
+      spawnIntervalDecrease: number
+      minSpawnInterval: number
+    }
   ) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
     this.onScoreUpdate = onScoreUpdate
     this.onGameOver = onGameOver
 
+    // Use provided mechanics or fall back to GAME_CONFIG
+    this.mechanics = gameMechanics || {
+      gravity: GAME_CONFIG.GRAVITY,
+      jumpForce: GAME_CONFIG.JUMP_FORCE,
+      maxFallSpeed: GAME_CONFIG.MAX_FALL_SPEED,
+      obstacleWidth: GAME_CONFIG.OBSTACLE_WIDTH,
+      gapHeight: GAME_CONFIG.GAP_HEIGHT,
+      obstacleSpeed: GAME_CONFIG.OBSTACLE_SPEED,
+      spawnInterval: GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL,
+      speedIncrement: GAME_CONFIG.SPEED_INCREMENT,
+      speedIncrementInterval: GAME_CONFIG.SPEED_INCREMENT_INTERVAL,
+      maxSpeed: GAME_CONFIG.MAX_SPEED,
+      gapDecrease: GAME_CONFIG.GAP_DECREASE,
+      minGap: GAME_CONFIG.MIN_GAP,
+      spawnIntervalDecrease: GAME_CONFIG.SPAWN_INTERVAL_DECREASE,
+      minSpawnInterval: GAME_CONFIG.MIN_SPAWN_INTERVAL,
+    }
+
     // Set canvas size
     this.canvas.width = GAME_CONFIG.WIDTH
     this.canvas.height = GAME_CONFIG.HEIGHT
+
+    // Initialize dynamic values from mechanics
+    this.currentSpeed = this.mechanics.obstacleSpeed
+    this.currentGap = this.mechanics.gapHeight
+    this.currentSpawnInterval = this.mechanics.spawnInterval
 
     // Initialize Santa
     this.santa = {
@@ -246,7 +301,7 @@ export class SantaJumpGame {
 
   private drawObstacle(obstacle: Obstacle): void {
     const { x, topHeight, bottomY } = obstacle
-    const width = GAME_CONFIG.OBSTACLE_WIDTH
+    const width = this.mechanics.obstacleWidth
 
     // Draw chimney style obstacles
     this.drawChimney(x, 0, width, topHeight, true)
@@ -317,7 +372,7 @@ export class SantaJumpGame {
     for (const obstacle of this.obstacles) {
       obstacle.x -= this.currentSpeed
 
-      if (!obstacle.passed && obstacle.x + GAME_CONFIG.OBSTACLE_WIDTH < this.santa.x) {
+      if (!obstacle.passed && obstacle.x + this.mechanics.obstacleWidth < this.santa.x) {
         obstacle.passed = true
         this.score++
         this.onScoreUpdate(this.score)
@@ -325,22 +380,22 @@ export class SantaJumpGame {
     }
 
     // Remove off-screen obstacles
-    this.obstacles = this.obstacles.filter(o => o.x > -GAME_CONFIG.OBSTACLE_WIDTH)
+    this.obstacles = this.obstacles.filter(o => o.x > -this.mechanics.obstacleWidth)
 
     // Increase difficulty progressively
-    if (now - this.lastSpeedIncrement > GAME_CONFIG.SPEED_INCREMENT_INTERVAL) {
+    if (now - this.lastSpeedIncrement > this.mechanics.speedIncrementInterval) {
       // Increase speed
-      if (this.currentSpeed < GAME_CONFIG.MAX_SPEED) {
-        this.currentSpeed += GAME_CONFIG.SPEED_INCREMENT
+      if (this.currentSpeed < this.mechanics.maxSpeed) {
+        this.currentSpeed += this.mechanics.speedIncrement
       }
       // Decrease gap (make it harder)
-      if (this.currentGap > GAME_CONFIG.MIN_GAP) {
-        this.currentGap -= GAME_CONFIG.GAP_DECREASE
+      if (this.currentGap > this.mechanics.minGap) {
+        this.currentGap -= this.mechanics.gapDecrease
       }
       // Decrease spawn interval (obstacles appear more frequently)
-      if (this.currentSpawnInterval > GAME_CONFIG.MIN_SPAWN_INTERVAL) {
-        this.currentSpawnInterval -= GAME_CONFIG.SPAWN_INTERVAL_DECREASE
-        this.currentSpawnInterval = Math.max(this.currentSpawnInterval, GAME_CONFIG.MIN_SPAWN_INTERVAL)
+      if (this.currentSpawnInterval > this.mechanics.minSpawnInterval) {
+        this.currentSpawnInterval -= this.mechanics.spawnIntervalDecrease
+        this.currentSpawnInterval = Math.max(this.currentSpawnInterval, this.mechanics.minSpawnInterval)
       }
       this.lastSpeedIncrement = now
     }
@@ -368,7 +423,7 @@ export class SantaJumpGame {
     // Obstacle collision
     for (const obstacle of this.obstacles) {
       const obsLeft = obstacle.x
-      const obsRight = obstacle.x + GAME_CONFIG.OBSTACLE_WIDTH
+      const obsRight = obstacle.x + this.mechanics.obstacleWidth
 
       if (santaBox.right > obsLeft && santaBox.left < obsRight) {
         if (santaBox.top < obstacle.topHeight) {
@@ -415,8 +470,8 @@ export class SantaJumpGame {
     this.drawSnow()
 
     // Update Santa physics (with ground boundary)
-    this.santa.velocity += GAME_CONFIG.GRAVITY
-    this.santa.velocity = Math.min(this.santa.velocity, GAME_CONFIG.MAX_FALL_SPEED)
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
     this.santa.y += this.santa.velocity
 
     // Keep Santa above ground during practice
@@ -540,8 +595,8 @@ export class SantaJumpGame {
     this.drawGround()
 
     // Update and draw Santa
-    this.santa.velocity += GAME_CONFIG.GRAVITY
-    this.santa.velocity = Math.min(this.santa.velocity, GAME_CONFIG.MAX_FALL_SPEED)
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
     this.santa.y += this.santa.velocity
 
     const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.santa.height
@@ -593,8 +648,8 @@ export class SantaJumpGame {
     this.drawSnow()
 
     // Update Santa physics
-    this.santa.velocity += GAME_CONFIG.GRAVITY
-    this.santa.velocity = Math.min(this.santa.velocity, GAME_CONFIG.MAX_FALL_SPEED)
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
     this.santa.y += this.santa.velocity
 
     // Update obstacles
@@ -633,7 +688,7 @@ export class SantaJumpGame {
 
     // Allow jumping during practice, countdown, and playing
     if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'playing') {
-      this.santa.velocity = GAME_CONFIG.JUMP_FORCE
+      this.santa.velocity = this.mechanics.jumpForce
     }
   }
 
@@ -647,10 +702,11 @@ export class SantaJumpGame {
     this.gameOver = false
     this.score = 0
     this.obstacles = []
-    this.currentSpeed = GAME_CONFIG.OBSTACLE_SPEED
-    this.currentGap = GAME_CONFIG.GAP_HEIGHT
+    this.currentSpeed = this.mechanics.obstacleSpeed
+    this.currentGap = this.mechanics.gapHeight
+    this.currentSpawnInterval = this.mechanics.spawnInterval
     this.santa.y = GAME_CONFIG.HEIGHT / 2
-    this.santa.velocity = GAME_CONFIG.JUMP_FORCE // First jump
+    this.santa.velocity = this.mechanics.jumpForce // First jump
     this.cameraOffset = 0
     this.previewObstacle = null
 
@@ -670,9 +726,9 @@ export class SantaJumpGame {
     this.gameOver = false
     this.gameStarted = false
     this.phase = 'idle'
-    this.currentSpeed = GAME_CONFIG.OBSTACLE_SPEED
-    this.currentGap = GAME_CONFIG.GAP_HEIGHT
-    this.currentSpawnInterval = GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL  // Reset spawn interval
+    this.currentSpeed = this.mechanics.obstacleSpeed
+    this.currentGap = this.mechanics.gapHeight
+    this.currentSpawnInterval = this.mechanics.spawnInterval  // Reset spawn interval
     this.lastObstacleTime = 0
     this.lastSpeedIncrement = 0
     this.santa.y = GAME_CONFIG.HEIGHT / 2

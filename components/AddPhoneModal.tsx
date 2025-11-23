@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getGameConfig, type GameConfig } from '@/lib/gameConfig'
 
 interface AddPhoneModalProps {
   isOpen: boolean
@@ -12,8 +13,19 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [config, setConfig] = useState<GameConfig | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    const loadConfig = async () => {
+      const gameConfig = await getGameConfig()
+      setConfig(gameConfig)
+    }
+    loadConfig()
+  }, [])
+
+  if (!isOpen || !config) return null
+
+  const modalContent = config.modalContent.addPhoneModal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,18 +86,18 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
         <div className="relative z-10 text-center">
           {/* Hero Icon */}
           <div className="mb-6 relative inline-block">
-            <div className="text-7xl animate-bounce">🎮</div>
+            <div className="text-7xl animate-bounce">{modalContent.icon}</div>
             <div className="absolute -bottom-2 -right-2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg rotate-12 whitespace-nowrap">
-              + 3 lượt chơi
+              {modalContent.badge}
             </div>
           </div>
 
           <h2 className="text-2xl font-bold text-white mb-2">
-            Nhận thêm 3 lượt chơi
+            {modalContent.title}
           </h2>
 
           <p className="text-white/70 mb-6 text-sm">
-            Cập nhật số điện thoại của bạn để nhận thêm lượt chơi
+            {modalContent.subtitle}
           </p>
 
           {error && (
@@ -113,7 +125,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
               disabled={loading || phone.length < 10}
               className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20"
             >
-              {loading ? 'ĐANG XỬ LÝ...' : 'Cập nhật số điện thoại'}
+              {loading ? 'ĐANG XỬ LÝ...' : modalContent.buttonText}
             </button>
           </form>
 

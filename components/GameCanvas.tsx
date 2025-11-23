@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { SantaJumpGame } from '@/lib/game/engine'
+import { getGameConfig } from '@/lib/gameConfig'
 
 interface GameCanvasProps {
   onGameOver: (score: number) => void
@@ -29,11 +30,19 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
   useEffect(() => {
     if (!canvasRef.current) return
 
-    gameRef.current = new SantaJumpGame(
-      canvasRef.current,
-      handleScoreUpdate,
-      handleGameOver
-    )
+    // Fetch game config and initialize game with mechanics
+    const initGame = async () => {
+      const config = await getGameConfig()
+
+      gameRef.current = new SantaJumpGame(
+        canvasRef.current!,
+        handleScoreUpdate,
+        handleGameOver,
+        config.gameMechanics
+      )
+    }
+
+    initGame()
 
     return () => {
       gameRef.current?.destroy()

@@ -3,66 +3,65 @@ import { supabase } from '@/lib/supabase'
 import { DEFAULT_CONFIG, clearConfigCache } from '@/lib/gameConfig'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
+import { getGameConfig } from '@/lib/gameConfig'
 
-function verifyAdminToken(request: NextRequest): boolean {
+// Simple admin authentication - check if token exists and starts with 'admin-token'
+function isAuthenticated(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) return false
+  if (!authHeader) return false
 
-  const token = authHeader.substring(7)
-  try {
-    jwt.verify(token, JWT_SECRET)
-    return true
-  } catch {
-    return false
-  }
+  const token = authHeader.replace('Bearer ', '')
+  return token.startsWith('admin-token')
 }
 
 export async function GET(request: NextRequest) {
   try {
-    if (!verifyAdminToken(request)) {
+    // Check authentication
+    if (!isAuthenticated(request)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Try to get config from database
-    const { data: config, error } = await supabase
-      .from('game_config')
-      .select('*')
-      .single()
+    // Get config from database
+    const config = await getGameConfig()
 
-    if (error || !config) {
-      // Return default config if not found in DB
-      return NextResponse.json(DEFAULT_CONFIG)
-    }
-
-    return NextResponse.json(config.config_data || DEFAULT_CONFIG)
-
+    return NextResponse.json({ config })
   } catch (error) {
     console.error('Get config error:', error)
-    return NextResponse.json(DEFAULT_CONFIG)
+    return NextResponse.json(
+      { error: 'Failed to get config' },
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    if (!verifyAdminToken(request)) {
+    // Check authentication
+    if (!isAuthenticated(request)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const configData = await request.json()
+    const { config } = await request.json()
+
+    if (!config) {
+      return NextResponse.json(
+        { error: 'Config is required' },
+        { status: 400 }
+      )
+    }
 
     // Upsert config in database
     const { error } = await supabase
       .from('game_config')
       .upsert({
         id: 'main',
-        config_data: configData,
+        config_data: config,
         updated_at: new Date().toISOString()
       })
 

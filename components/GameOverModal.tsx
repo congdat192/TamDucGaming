@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { getGameConfig, type GameConfig } from '@/lib/gameConfig'
 
 interface Voucher {
   code: string
@@ -33,8 +34,19 @@ export default function GameOverModal({
   const [email, setEmail] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [sending, setSending] = useState(false)
+  const [config, setConfig] = useState<GameConfig | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    const loadConfig = async () => {
+      const gameConfig = await getGameConfig()
+      setConfig(gameConfig)
+    }
+    loadConfig()
+  }, [])
+
+  if (!isOpen || !config) return null
+
+  const modalContent = config.modalContent.gameOverModal
 
   const handleCopyVoucher = () => {
     if (voucher) {
@@ -148,7 +160,7 @@ export default function GameOverModal({
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher 50K</span>
+                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label50k}</span>
                     <span className={score >= 10 ? 'text-green-400' : 'text-white/50'}>{Math.min(score, 10)}/10 điểm</span>
                   </div>
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -167,7 +179,7 @@ export default function GameOverModal({
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher 100K</span>
+                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label100k}</span>
                     <span className={score >= 20 ? 'text-yellow-400' : 'text-white/50'}>{Math.min(score, 20)}/20 điểm</span>
                   </div>
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -186,7 +198,7 @@ export default function GameOverModal({
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white font-bold">Voucher 150K</span>
+                    <span className="text-white font-bold">Voucher {modalContent.progressLabels.label150k}</span>
                     <span className={score >= 30 ? 'text-red-400' : 'text-white/50'}>{Math.min(score, 30)}/30 điểm</span>
                   </div>
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -208,7 +220,7 @@ export default function GameOverModal({
             <button
               onClick={onPlayAgain}
               className="w-full py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-base rounded-xl hover:from-red-600 hover:to-red-700 transition shadow-lg shadow-red-500/20 animate-pulse">
-              🎮 CHƠI LẠI ({playsRemaining} lượt)
+              {modalContent.playAgainButton} ({playsRemaining} lượt)
             </button>
           ) : (
             // Case 2: Out of plays -> Show 3 buttons
@@ -228,7 +240,7 @@ export default function GameOverModal({
                   <span className="text-xl">🎁</span>
                   <div>
                     <div className="text-xs text-green-100">Mời bạn bè chơi</div>
-                    <div className="font-bold">NHẬN THÊM 5 LƯỢT</div>
+                    <div className="font-bold">{modalContent.inviteButton.toUpperCase()}</div>
                   </div>
                 </div>
               </button>
@@ -238,7 +250,7 @@ export default function GameOverModal({
           <button
             onClick={onGoHome}
             className="w-full py-3 bg-white/10 text-white font-medium text-sm rounded-xl hover:bg-white/20 transition border border-white/20">
-            🏠 Về trang chủ
+            {modalContent.homeButton}
           </button>
         </div>
       </div>

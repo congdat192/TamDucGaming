@@ -29,8 +29,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { score, gameToken } = await request.json()
+    console.log(`[GAME END] Received score: ${score}, token: ${gameToken?.substring(0, 10)}...`)
 
     if (typeof score !== 'number' || score < 0) {
+      console.error('[GAME END] Invalid score')
       return NextResponse.json(
         { error: 'Điểm không hợp lệ' },
         { status: 400 }
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Verify Game Token
     if (!gameToken) {
+      console.error('[GAME END] Missing game token')
       return NextResponse.json(
         { error: 'Thiếu game token' },
         { status: 400 }
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
 
     const gamePayload = verifyGameToken(gameToken)
     if (!gamePayload) {
+      console.error('[GAME END] Invalid game token')
       return NextResponse.json(
         { error: 'Game token không hợp lệ hoặc đã hết hạn' },
         { status: 400 }
@@ -54,6 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (gamePayload.userId !== payload.userId) {
+      console.error(`[GAME END] Token mismatch. Token user: ${gamePayload.userId}, Auth user: ${payload.userId}`)
       return NextResponse.json(
         { error: 'Game token không khớp với người dùng' },
         { status: 403 }
@@ -64,6 +69,8 @@ export async function POST(request: NextRequest) {
     const currentTimestamp = Date.now()
     const durationSeconds = (currentTimestamp - gamePayload.startTime) / 1000
     const maxPossibleScore = Math.ceil(durationSeconds * 5) + 10 // 5 points/sec + 10 buffer
+
+    console.log(`[GAME END] Duration: ${durationSeconds}s, Score: ${score}, Max: ${maxPossibleScore}`)
 
     if (score > maxPossibleScore) {
       console.warn(`[ANTI-CHEAT] Suspicious score: ${score} in ${durationSeconds}s (User: ${payload.userId})`)
@@ -84,6 +91,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (userError || !user) {
+      console.error('[GAME END] User not found:', userError)
       return NextResponse.json(
         { error: 'Không tìm thấy người dùng' },
         { status: 404 }
@@ -92,30 +100,48 @@ export async function POST(request: NextRequest) {
 
     // Get active campaign
     const now = new Date().toISOString()
-    const { data: campaign } = await supabase
+    const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select('id')
       .eq('is_active', true)
       .lte('start_date', now)
       .gte('end_date', now)
-      .single()
+      .limit(1)
+
+    const activeCampaign = campaign && campaign.length > 0 ? campaign[0] : null
+
+    if (campaignError) {
+      console.error('[GAME END] Error fetching campaign:', campaignError)
+    }
 
     // Save game session
-    await supabaseAdmin
+    const { error: sessionError } = await supabaseAdmin
       .from('game_sessions')
       .insert({
         user_id: user.id,
         score,
-        campaign_id: campaign?.id || null
+        campaign_id: activeCampaign?.id || null
       })
 
+    if (sessionError) {
+      console.error('Failed to save game session:', sessionError)
+      return NextResponse.json(
+        { error: 'Không thể lưu kết quả chơi' },
+        { status: 500 }
+      )
+    }
+
     // Update user's total score
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({
         total_score: user.total_score + score
       })
       .eq('id', user.id)
+
+    if (updateError) {
+      console.error('[GAME END] Failed to update user score:', updateError)
+    }
 
     // Check for referral reward (first game completed by referred user)
     const { data: referral } = await supabase

@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('*', { count: 'exact', head: true })
 
-    // Get total game sessions (from play_logs)
+    // Get total game sessions (from game_sessions)
     const { count: totalSessions } = await supabase
-      .from('play_logs')
+      .from('game_sessions')
       .select('*', { count: 'exact', head: true })
 
     // Get total vouchers issued
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
     const { data: activePlayers } = await supabase
-      .from('play_logs')
+      .from('game_sessions')
       .select('user_id')
-      .gte('created_at', sevenDaysAgo.toISOString())
+      .gte('played_at', sevenDaysAgo.toISOString())
 
     const activeUsers = new Set(activePlayers?.map(p => p.user_id) || []).size
 

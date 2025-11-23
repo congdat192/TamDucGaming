@@ -41,6 +41,13 @@ export default function LeaderboardPage() {
   useEffect(() => {
     fetchLeaderboard()
     checkAuth()
+
+    // Polling every 60 seconds
+    const interval = setInterval(() => {
+      fetchLeaderboard(true)
+    }, 60000)
+
+    return () => clearInterval(interval)
   }, [period])
 
   const checkAuth = async () => {
@@ -56,21 +63,21 @@ export default function LeaderboardPage() {
     }
   }
 
-  const fetchLeaderboard = async () => {
-    setLoading(true)
+  const fetchLeaderboard = async (isBackground = false) => {
+    if (!isBackground) setLoading(true)
     try {
       let url = `/api/leaderboard?period=${period}&limit=${maxItems}`
 
-      const res = await fetch(url)
+      const res = await fetch(url, { cache: 'no-store' })
       const data = await res.json()
 
       setLeaderboard(data.leaderboard || [])
       setCampaigns(data.campaigns || [])
-      setCurrentPage(1) // Reset to page 1 on new fetch
+      if (!isBackground) setCurrentPage(1) // Reset to page 1 only on initial fetch
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error)
     } finally {
-      setLoading(false)
+      if (!isBackground) setLoading(false)
     }
   }
 

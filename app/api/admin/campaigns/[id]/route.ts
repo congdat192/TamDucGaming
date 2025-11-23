@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { toVietnamStartOfDayUTC, toVietnamEndOfDayUTC } from '@/lib/date'
 
 // Simple admin authentication
 function isAuthenticated(request: NextRequest): boolean {
@@ -22,18 +23,28 @@ export async function PATCH(
             )
         }
 
-        const { is_active } = await request.json()
+        const body = await request.json()
+        const { is_active, name, description, start_date, end_date } = body
 
-        if (typeof is_active !== 'boolean') {
+        const updates: any = {}
+        if (typeof is_active === 'boolean') updates.is_active = is_active
+        if (name) updates.name = name
+        if (description !== undefined) updates.description = description
+
+
+        if (start_date) updates.start_date = toVietnamStartOfDayUTC(start_date)
+        if (end_date) updates.end_date = toVietnamEndOfDayUTC(end_date)
+
+        if (Object.keys(updates).length === 0) {
             return NextResponse.json(
-                { error: 'is_active must be a boolean' },
+                { error: 'No fields to update' },
                 { status: 400 }
             )
         }
 
         const { data: campaign, error } = await supabase
             .from('campaigns')
-            .update({ is_active })
+            .update(updates)
             .eq('id', params.id)
             .select()
             .single()

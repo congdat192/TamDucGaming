@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { toVietnamStartOfDayUTC, toVietnamEndOfDayUTC } from '@/lib/date'
 
 // Simple admin authentication
 function isAuthenticated(request: NextRequest): boolean {
@@ -57,13 +58,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+
+
     const { data: campaign, error } = await supabase
       .from('campaigns')
       .insert({
         name,
         description: description || null,
-        start_date: new Date(start_date).toISOString(),
-        end_date: new Date(end_date).toISOString(),
+        start_date: toVietnamStartOfDayUTC(start_date),
+        end_date: toVietnamEndOfDayUTC(end_date),
         is_active: true
       })
       .select()

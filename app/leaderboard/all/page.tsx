@@ -27,20 +27,27 @@ export default function LeaderboardAllPage() {
 
     useEffect(() => {
         fetchLeaderboard()
+
+        // Polling every 60 seconds
+        const interval = setInterval(() => {
+            fetchLeaderboard(true)
+        }, 60000)
+
+        return () => clearInterval(interval)
     }, [period])
 
-    const fetchLeaderboard = async () => {
-        setLoading(true)
+    const fetchLeaderboard = async (isBackground = false) => {
+        if (!isBackground) setLoading(true)
         try {
             // Fetch more items for the "View All" page, e.g., top 100
-            const res = await fetch(`/api/leaderboard?period=${period}&limit=100`)
+            const res = await fetch(`/api/leaderboard?period=${period}&limit=100`, { cache: 'no-store' })
             const data = await res.json()
             setLeaderboard(data.leaderboard || [])
-            setCurrentPage(1)
+            if (!isBackground) setCurrentPage(1)
         } catch (error) {
             console.error('Failed to fetch leaderboard:', error)
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
     }
 

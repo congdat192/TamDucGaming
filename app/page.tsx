@@ -48,7 +48,7 @@ function HomeContent() {
   const handleLoginSuccess = () => {
     setIsLoggedIn(true)
     checkAuth()
-    router.push('/game')
+    router.push('/')
   }
 
   return (

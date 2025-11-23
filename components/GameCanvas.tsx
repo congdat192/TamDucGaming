@@ -13,7 +13,7 @@ interface GameCanvasProps {
   playsRemaining: number
 }
 
-export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onStartGame, playsRemaining }: GameCanvasProps) {
+function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame, playsRemaining }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<SantaJumpGame | null>(null)
   const [currentScore, setCurrentScore] = useState(0)
@@ -197,3 +197,7 @@ export default function GameCanvas({ onGameOver, onScoreUpdate, isPlaying, onSta
     </div>
   )
 }
+
+// Memoize the component to prevent re-renders when parent state changes
+const GameCanvas = import('react').then(mod => mod.memo(GameCanvasComponent)) as unknown as typeof GameCanvasComponent
+export default GameCanvasComponent

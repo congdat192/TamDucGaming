@@ -151,6 +151,12 @@ export default function GamePage() {
     // Score is handled inside GameCanvas for display
   }, [])
 
+  // Use ref for user to avoid re-creating handleGameOver when user updates
+  const userRef = useRef(user)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
   const handleGameOver = useCallback(async (score: number) => {
     setIsPlaying(false)
     setFinalScore(score)
@@ -178,13 +184,14 @@ export default function GamePage() {
     }
 
     // Logic: If user has no phone, show AddPhoneModal first
-    if (user && !user.phone) {
+    const currentUser = userRef.current
+    if (currentUser && !currentUser.phone) {
       setShowAddPhone(true)
       setPendingGameOver(true)
     } else {
       setShowGameOver(true)
     }
-  }, [gameToken, user]) // Added user dependency
+  }, [gameToken]) // Removed user dependency
 
   const handlePlayAgain = () => {
     setShowGameOver(false)

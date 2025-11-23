@@ -3,7 +3,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { SantaJumpGame } from '@/lib/game/engine'
 import { getGameConfig } from '@/lib/gameConfig'
-import { useSFX } from '@/hooks/useSFX'
 
 interface GameCanvasProps {
   onGameOver: (score: number) => void
@@ -19,15 +18,6 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
   const [currentScore, setCurrentScore] = useState(0)
   const [isPracticeMode, setIsPracticeMode] = useState(false)
 
-  // Sound effects
-  const sfx = useSFX()
-
-  // Create stable refs for SFX callbacks to avoid re-initialization
-  const sfxRef = useRef(sfx)
-  useEffect(() => {
-    sfxRef.current = sfx
-  }, [sfx])
-
   const handleScoreUpdate = useCallback((score: number) => {
     // Only update local state if score changed
     setCurrentScore(prev => {
@@ -41,7 +31,6 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
   }, [onScoreUpdate])
 
   const handleGameOver = useCallback((finalScore: number) => {
-    sfxRef.current.playGameOver()
     onGameOver(finalScore)
   }, [onGameOver])
 
@@ -57,14 +46,7 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
         handleScoreUpdate,
         handleGameOver,
         config.gameMechanics,
-        {
-          playJump: () => sfxRef.current.playJump(),
-          playCollectGift: () => sfxRef.current.playCollectGift(),
-          playCollectGlasses: () => sfxRef.current.playCollectGlasses(),
-          playCollectStar: () => sfxRef.current.playCollectStar(),
-          playHitBomb: () => sfxRef.current.playHitBomb(),
-          playGameOver: () => sfxRef.current.playGameOver()
-        },
+        undefined, // No SFX
         // Event-driven phase updates instead of polling
         (phase) => {
           setIsPracticeMode(phase === 'practice')

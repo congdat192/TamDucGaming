@@ -7,7 +7,7 @@ import ProfileModal from '@/components/ProfileModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
-import AudioControls from '@/components/AudioControls'
+import TopMenu from '@/components/TopMenu'
 
 function HomeContent() {
   const router = useRouter()
@@ -56,10 +56,27 @@ function HomeContent() {
     router.push('/')
   }
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      setIsLoggedIn(false)
+      setUser(null)
+      setShowProfile(false)
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
   return (
     <main className="h-[100dvh] relative overflow-hidden flex flex-col">
       <Snowflakes />
       <AudioControls />
+      <TopMenu
+        isLoggedIn={isLoggedIn}
+        onProfileClick={() => setShowProfile(true)}
+        onLoginClick={() => setShowLogin(true)}
+        onLogoutClick={handleLogout}
+      />
 
       {/* Main scrollable area */}
       <div className="flex-1 overflow-y-auto pb-20 relative z-10">
@@ -193,11 +210,7 @@ function HomeContent() {
         onClose={() => setShowProfile(false)}
         user={user}
         onUserUpdate={checkAuth}
-        onLogout={async () => {
-          await fetch('/api/auth/logout', { method: 'POST' })
-          setIsLoggedIn(false)
-          setUser(null)
-        }}
+        onLogout={handleLogout}
       />
 
       {/* Bottom Navigation */}

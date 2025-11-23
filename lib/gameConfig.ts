@@ -77,6 +77,12 @@ export interface GameConfig {
       htmlTemplate: string
     }
   }
+  audio: {
+    bgmVolume: number
+    sfxVolume: number
+    bgmEnabled: boolean
+    sfxEnabled: boolean
+  }
 }
 
 // Default config values
@@ -211,6 +217,12 @@ export const DEFAULT_CONFIG: GameConfig = {
 </div>`,
     },
   },
+  audio: {
+    bgmVolume: 0.7,
+    sfxVolume: 0.7,
+    bgmEnabled: true,
+    sfxEnabled: true
+  }
 }
 
 // Cache config to avoid hitting DB on every request

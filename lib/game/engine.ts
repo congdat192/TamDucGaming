@@ -63,6 +63,14 @@ export class SantaJumpGame {
     spawnIntervalDecrease: number
     minSpawnInterval: number
   }
+  private sfx?: {
+    playJump: () => void
+    playCollectGift: () => void
+    playCollectGlasses: () => void
+    playCollectStar: () => void
+    playHitBomb: () => void
+    playGameOver: () => void
+  }
 
   constructor(
     canvas: HTMLCanvasElement,

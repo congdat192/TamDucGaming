@@ -6,6 +6,7 @@ import LoginModal from '@/components/LoginModal'
 import ProfileModal from '@/components/ProfileModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
+import { useBGM } from '@/hooks/useBGM'
 
 function HomeContent() {
   const router = useRouter()
@@ -15,6 +16,9 @@ function HomeContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // Background music
+  const bgm = useBGM('homepage')
 
   const referralCode = searchParams.get('ref')
 

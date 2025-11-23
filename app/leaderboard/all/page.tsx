@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
+import { useBGM } from '@/hooks/useBGM'
 
 interface LeaderboardEntry {
     rank: number
@@ -17,6 +18,9 @@ type Period = 'week' | 'month' | 'campaign' | 'all'
 
 export default function LeaderboardAllPage() {
     const router = useRouter()
+
+    // Background music
+    const bgm = useBGM('leaderboard')
     const [loading, setLoading] = useState(true)
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
     const [period, setPeriod] = useState<Period>('all')

@@ -175,11 +175,10 @@ export class SantaJumpGame {
 
   private backgroundCanvas: HTMLCanvasElement | null = null
 
-  // ... (inside constructor, after this.canvas = canvas)
-    this.initBackgroundCache()
+
 
   private initBackgroundCache(): void {
-  this.backgroundCanvas = document.createElement('canvas')
+    this.backgroundCanvas = document.createElement('canvas')
     this.backgroundCanvas.width = GAME_CONFIG.WIDTH
     this.backgroundCanvas.height = GAME_CONFIG.HEIGHT
     const ctx = this.backgroundCanvas.getContext('2d')!
@@ -194,48 +193,48 @@ export class SantaJumpGame {
 
     // Stars
     ctx.fillStyle = '#FFFFFF'
-    for(let i = 0; i < 30; i++) {
-  const x = (i * 37) % GAME_CONFIG.WIDTH
-  const y = (i * 23) % (GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - 100)
-  const size = (i % 3) + 1
-  ctx.beginPath()
-  ctx.arc(x, y, size, 0, Math.PI * 2)
-  ctx.fill()
-}
+    for (let i = 0; i < 30; i++) {
+      const x = (i * 37) % GAME_CONFIG.WIDTH
+      const y = (i * 23) % (GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - 100)
+      const size = (i % 3) + 1
+      ctx.beginPath()
+      ctx.arc(x, y, size, 0, Math.PI * 2)
+      ctx.fill()
+    }
 
-// Moon
-ctx.fillStyle = '#FFF8DC'
-ctx.beginPath()
-ctx.arc(GAME_CONFIG.WIDTH - 60, 60, 30, 0, Math.PI * 2)
-ctx.fill()
+    // Moon
+    ctx.fillStyle = '#FFF8DC'
+    ctx.beginPath()
+    ctx.arc(GAME_CONFIG.WIDTH - 60, 60, 30, 0, Math.PI * 2)
+    ctx.fill()
   }
 
   private drawBackground(): void {
-  if(this.backgroundCanvas) {
-  this.ctx.drawImage(this.backgroundCanvas, 0, 0)
-}
+    if (this.backgroundCanvas) {
+      this.ctx.drawImage(this.backgroundCanvas, 0, 0)
+    }
   }
 
   private drawSnow(): void {
-  this.ctx.fillStyle = '#FFFFFF'
-    for(const flake of this.snowflakes) {
-  // Optimization: Draw squares instead of circles
-  this.ctx.fillRect(flake.x, flake.y, flake.size, flake.size)
+    this.ctx.fillStyle = '#FFFFFF'
+    for (const flake of this.snowflakes) {
+      // Optimization: Draw squares instead of circles
+      this.ctx.fillRect(flake.x, flake.y, flake.size, flake.size)
 
-  // Update position
-  flake.y += flake.speed
-  // Optimization: Simplified horizontal movement
-  flake.x += Math.sin(flake.y * 0.05) * 0.5
+      // Update position
+      flake.y += flake.speed
+      // Optimization: Simplified horizontal movement
+      flake.x += Math.sin(flake.y * 0.05) * 0.5
 
-  if (flake.y > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
-    flake.y = 0
-    flake.x = Math.random() * GAME_CONFIG.WIDTH
-  }
-}
+      if (flake.y > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
+        flake.y = 0
+        flake.x = Math.random() * GAME_CONFIG.WIDTH
+      }
+    }
   }
 
   private drawGround(): void {
-  const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT
+    const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT
 
     // Snow layer
     this.ctx.fillStyle = '#FFFFFF'
@@ -247,25 +246,25 @@ ctx.fill()
 
     // Snow bumps
     this.ctx.fillStyle = '#FFFFFF'
-    for(let i = 0; i <GAME_CONFIG.WIDTH; i += 40) {
-  this.ctx.beginPath()
-  this.ctx.arc(i + 20, groundY + 10, 15, Math.PI, 0)
-  this.ctx.fill()
-}
+    for (let i = 0; i < GAME_CONFIG.WIDTH; i += 40) {
+      this.ctx.beginPath()
+      this.ctx.arc(i + 20, groundY + 10, 15, Math.PI, 0)
+      this.ctx.fill()
+    }
 
-// Branding text
-this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-this.ctx.font = 'bold 12px Arial'
-this.ctx.textAlign = 'center'
-this.ctx.fillText('Mắt Kính Tâm Đức - matkinhtamduc.com', GAME_CONFIG.WIDTH / 2, groundY + 45)
+    // Branding text
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+    this.ctx.font = 'bold 12px Arial'
+    this.ctx.textAlign = 'center'
+    this.ctx.fillText('Mắt Kính Tâm Đức - matkinhtamduc.com', GAME_CONFIG.WIDTH / 2, groundY + 45)
 
-this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
-this.ctx.font = '10px Arial'
-this.ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, groundY + 60)
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
+    this.ctx.font = '10px Arial'
+    this.ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, groundY + 60)
   }
 
   private drawSanta(): void {
-  const { x, y, width, height } = this.santa
+    const { x, y, width, height } = this.santa
     const ctx = this.ctx
 
     // Body (red suit)
@@ -333,21 +332,21 @@ this.ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, groundY 
     ctx.fillStyle = '#000000'
     ctx.fillRect(x + width * 0.2, y + height * 0.92, width * 0.25, height * 0.1)
     ctx.fillRect(x + width * 0.55, y + height * 0.92, width * 0.25, height * 0.1)
-}
+  }
 
   private drawObstacle(obstacle: Obstacle): void {
-  const { x, topHeight, bottomY } = obstacle
+    const { x, topHeight, bottomY } = obstacle
     const width = this.mechanics.obstacleWidth
 
     // Draw chimney style obstacles
     this.drawChimney(x, 0, width, topHeight, true)
     this.drawChimney(x, bottomY, width, GAME_CONFIG.HEIGHT - bottomY - GAME_CONFIG.GROUND_HEIGHT, false)
-}
+  }
 
   private chimneyPattern: CanvasPattern | null = null
 
   private initChimneyPattern(): void {
-  const patternCanvas = document.createElement('canvas')
+    const patternCanvas = document.createElement('canvas')
     const width = this.mechanics.obstacleWidth
     const height = 40 // Height of 2 rows of bricks
     patternCanvas.width = width
@@ -364,402 +363,402 @@ this.ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, groundY 
     const brickHeight = 20
     const brickWidth = width / 2
 
-    for(let row = 0; row < 2; row++) {
-  const offsetX = row % 2 === 0 ? 0 : brickWidth / 2
-  for (let col = -1; col < 3; col++) {
-    const bx = offsetX + col * brickWidth
-    const by = row * brickHeight
-    pCtx.strokeRect(bx, by, brickWidth, brickHeight)
-  }
-}
+    for (let row = 0; row < 2; row++) {
+      const offsetX = row % 2 === 0 ? 0 : brickWidth / 2
+      for (let col = -1; col < 3; col++) {
+        const bx = offsetX + col * brickWidth
+        const by = row * brickHeight
+        pCtx.strokeRect(bx, by, brickWidth, brickHeight)
+      }
+    }
 
-this.chimneyPattern = this.ctx.createPattern(patternCanvas, 'repeat')
+    this.chimneyPattern = this.ctx.createPattern(patternCanvas, 'repeat')
   }
 
   private drawChimney(x: number, y: number, width: number, height: number, flipped: boolean): void {
-  const ctx = this.ctx
+    const ctx = this.ctx
 
-    if(height <= 0) return
+    if (height <= 0) return
 
-// Use cached pattern
-if (!this.chimneyPattern) {
-  this.initChimneyPattern()
-}
+    // Use cached pattern
+    if (!this.chimneyPattern) {
+      this.initChimneyPattern()
+    }
 
-ctx.fillStyle = this.chimneyPattern!
+    ctx.fillStyle = this.chimneyPattern!
 
-// We need to translate the pattern so it aligns with the chimney
-ctx.save()
-ctx.translate(x, y)
-ctx.fillRect(0, 0, width, height)
-ctx.restore()
+    // We need to translate the pattern so it aligns with the chimney
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.fillRect(0, 0, width, height)
+    ctx.restore()
 
-// Chimney cap
-ctx.fillStyle = COLORS.christmas.chimney
-if (flipped) {
-  ctx.fillRect(x - 5, y + height - 15, width + 10, 15)
-  ctx.fillStyle = '#FFFFFF'
-  ctx.fillRect(x - 5, y + height - 5, width + 10, 8)
-} else {
-  ctx.fillRect(x - 5, y, width + 10, 15)
-  ctx.fillStyle = '#FFFFFF'
-  ctx.beginPath()
-  ctx.ellipse(x + width / 2, y, width * 0.6, 10, 0, Math.PI, 0)
-  ctx.fill()
-}
-  }
-
-  private updateObstacles(): void {
-  const now = Date.now()
-
-    // Spawn new obstacle (using dynamic spawn interval)
-    if(now - this.lastObstacleTime > this.currentSpawnInterval) {
-  const minHeight = GAME_CONFIG.MIN_OBSTACLE_HEIGHT
-  const maxHeight = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.currentGap - minHeight
-  const topHeight = Math.random() * (maxHeight - minHeight) + minHeight
-
-  this.obstacles.push({
-    x: GAME_CONFIG.WIDTH,
-    topHeight,
-    bottomY: topHeight + this.currentGap,
-    passed: false
-  })
-
-  this.lastObstacleTime = now
-}
-
-// Update obstacle positions
-for (const obstacle of this.obstacles) {
-  obstacle.x -= this.currentSpeed
-
-  if (!obstacle.passed && obstacle.x + this.mechanics.obstacleWidth < this.santa.x) {
-    obstacle.passed = true
-    this.score++
-    this.onScoreUpdate(this.score)
-    this.sfx?.playCollectStar()
-  }
-}
-
-// Remove off-screen obstacles
-this.obstacles = this.obstacles.filter(o => o.x > -this.mechanics.obstacleWidth)
-
-// Increase difficulty progressively
-if (now - this.lastSpeedIncrement > this.mechanics.speedIncrementInterval) {
-  // Increase speed
-  if (this.currentSpeed < this.mechanics.maxSpeed) {
-    this.currentSpeed += this.mechanics.speedIncrement
-  }
-  // Decrease gap (make it harder)
-  if (this.currentGap > this.mechanics.minGap) {
-    this.currentGap -= this.mechanics.gapDecrease
-  }
-  // Decrease spawn interval (obstacles appear more frequently)
-  if (this.currentSpawnInterval > this.mechanics.minSpawnInterval) {
-    this.currentSpawnInterval -= this.mechanics.spawnIntervalDecrease
-    this.currentSpawnInterval = Math.max(this.currentSpawnInterval, this.mechanics.minSpawnInterval)
-  }
-  this.lastSpeedIncrement = now
-}
-  }
-
-  private checkCollision(): boolean {
-  const santa = this.santa
-  const santaBox = {
-    left: santa.x + 10,
-    right: santa.x + santa.width - 10,
-    top: santa.y + 5,
-    bottom: santa.y + santa.height - 5
-  }
-
-  // Ground collision
-  if (santaBox.bottom > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
-    return true
-  }
-
-  // Ceiling collision
-  if (santaBox.top < 0) {
-    return true
-  }
-
-  // Obstacle collision
-  for (const obstacle of this.obstacles) {
-    const obsLeft = obstacle.x
-    const obsRight = obstacle.x + this.mechanics.obstacleWidth
-
-    if (santaBox.right > obsLeft && santaBox.left < obsRight) {
-      if (santaBox.top < obstacle.topHeight) {
-        return true
-      }
-      if (santaBox.bottom > obstacle.bottomY) {
-        return true
-      }
+    // Chimney cap
+    ctx.fillStyle = COLORS.christmas.chimney
+    if (flipped) {
+      ctx.fillRect(x - 5, y + height - 15, width + 10, 15)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(x - 5, y + height - 5, width + 10, 8)
+    } else {
+      ctx.fillRect(x - 5, y, width + 10, 15)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.beginPath()
+      ctx.ellipse(x + width / 2, y, width * 0.6, 10, 0, Math.PI, 0)
+      ctx.fill()
     }
   }
 
-  return false
-}
+  private updateObstacles(): void {
+    const now = Date.now()
+
+    // Spawn new obstacle (using dynamic spawn interval)
+    if (now - this.lastObstacleTime > this.currentSpawnInterval) {
+      const minHeight = GAME_CONFIG.MIN_OBSTACLE_HEIGHT
+      const maxHeight = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.currentGap - minHeight
+      const topHeight = Math.random() * (maxHeight - minHeight) + minHeight
+
+      this.obstacles.push({
+        x: GAME_CONFIG.WIDTH,
+        topHeight,
+        bottomY: topHeight + this.currentGap,
+        passed: false
+      })
+
+      this.lastObstacleTime = now
+    }
+
+    // Update obstacle positions
+    for (const obstacle of this.obstacles) {
+      obstacle.x -= this.currentSpeed
+
+      if (!obstacle.passed && obstacle.x + this.mechanics.obstacleWidth < this.santa.x) {
+        obstacle.passed = true
+        this.score++
+        this.onScoreUpdate(this.score)
+        this.sfx?.playCollectStar()
+      }
+    }
+
+    // Remove off-screen obstacles
+    this.obstacles = this.obstacles.filter(o => o.x > -this.mechanics.obstacleWidth)
+
+    // Increase difficulty progressively
+    if (now - this.lastSpeedIncrement > this.mechanics.speedIncrementInterval) {
+      // Increase speed
+      if (this.currentSpeed < this.mechanics.maxSpeed) {
+        this.currentSpeed += this.mechanics.speedIncrement
+      }
+      // Decrease gap (make it harder)
+      if (this.currentGap > this.mechanics.minGap) {
+        this.currentGap -= this.mechanics.gapDecrease
+      }
+      // Decrease spawn interval (obstacles appear more frequently)
+      if (this.currentSpawnInterval > this.mechanics.minSpawnInterval) {
+        this.currentSpawnInterval -= this.mechanics.spawnIntervalDecrease
+        this.currentSpawnInterval = Math.max(this.currentSpawnInterval, this.mechanics.minSpawnInterval)
+      }
+      this.lastSpeedIncrement = now
+    }
+  }
+
+  private checkCollision(): boolean {
+    const santa = this.santa
+    const santaBox = {
+      left: santa.x + 10,
+      right: santa.x + santa.width - 10,
+      top: santa.y + 5,
+      bottom: santa.y + santa.height - 5
+    }
+
+    // Ground collision
+    if (santaBox.bottom > GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT) {
+      return true
+    }
+
+    // Ceiling collision
+    if (santaBox.top < 0) {
+      return true
+    }
+
+    // Obstacle collision
+    for (const obstacle of this.obstacles) {
+      const obsLeft = obstacle.x
+      const obsRight = obstacle.x + this.mechanics.obstacleWidth
+
+      if (santaBox.right > obsLeft && santaBox.left < obsRight) {
+        if (santaBox.top < obstacle.topHeight) {
+          return true
+        }
+        if (santaBox.bottom > obstacle.bottomY) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
 
   private drawScore(): void {
-  this.ctx.fillStyle = '#FFFFFF'
+    this.ctx.fillStyle = '#FFFFFF'
     this.ctx.font = 'bold 36px Arial'
     this.ctx.textAlign = 'center'
     this.ctx.strokeStyle = '#000000'
     this.ctx.lineWidth = 3
     this.ctx.strokeText(this.score.toString(), GAME_CONFIG.WIDTH / 2, 50)
     this.ctx.fillText(this.score.toString(), GAME_CONFIG.WIDTH / 2, 50)
-}
+  }
 
   private drawPracticeHint(): void {
-  // Practice hint is now handled by React overlay in GameCanvas component
-  // No need to draw text here to avoid overlap
-}
+    // Practice hint is now handled by React overlay in GameCanvas component
+    // No need to draw text here to avoid overlap
+  }
 
   private practiceLoop = (): void => {
-  if (this.phase !== 'practice') {
-    // Transition to countdown loop
-    if (this.phase === 'countdown') {
-      this.animationId = requestAnimationFrame(this.countdownLoop)
+    if (this.phase !== 'practice') {
+      // Transition to countdown loop
+      if (this.phase === 'countdown') {
+        this.animationId = requestAnimationFrame(this.countdownLoop)
+      }
+      return
     }
-    return
-  }
 
-  // Clear canvas
-  this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
+    // Clear canvas
+    this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
 
-  // Draw background elements
-  this.drawBackground()
-  this.drawSnow()
+    // Draw background elements
+    this.drawBackground()
+    this.drawSnow()
 
-  // Update Santa physics (with ground boundary)
-  this.santa.velocity += this.mechanics.gravity
-  this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
-  this.santa.y += this.santa.velocity
+    // Update Santa physics (with ground boundary)
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
+    this.santa.y += this.santa.velocity
 
-  // Keep Santa above ground during practice
-  const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.santa.height
-  if (this.santa.y > groundY) {
-    this.santa.y = groundY
-    this.santa.velocity = 0
-  }
-  if (this.santa.y < 0) {
-    this.santa.y = 0
-    this.santa.velocity = 0
-  }
-
-  // Draw ground
-  this.drawGround()
-
-  // Draw static preview obstacles (not moving, just for demonstration)
-  const practiceElapsed = Date.now() - this.practiceStartTime
-
-  // Show 3 static obstacles at different positions
-  const staticObstacles = [
-    {
-      x: GAME_CONFIG.WIDTH * 0.7,
-      topHeight: 80,
-      bottomY: 80 + this.currentGap,
-      passed: false
-    },
-    {
-      x: GAME_CONFIG.WIDTH * 0.85,
-      topHeight: 150,
-      bottomY: 150 + this.currentGap,
-      passed: false
-    },
-    {
-      x: GAME_CONFIG.WIDTH * 0.55,
-      topHeight: 120,
-      bottomY: 120 + this.currentGap,
-      passed: false
+    // Keep Santa above ground during practice
+    const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.santa.height
+    if (this.santa.y > groundY) {
+      this.santa.y = groundY
+      this.santa.velocity = 0
     }
-  ]
-
-  // Draw static obstacles with semi-transparent effect
-  this.ctx.globalAlpha = 0.6  // Make them semi-transparent
-  staticObstacles.forEach(obstacle => this.drawObstacle(obstacle))
-  this.ctx.globalAlpha = 1.0  // Reset opacity
-
-  // Draw Santa
-  this.drawSanta()
-
-  // Draw practice hint
-  this.drawPracticeHint()
-
-  // Check if practice time is over (3 seconds)
-  if (practiceElapsed >= 3000) {
-    this.phase = 'countdown'
-    this.countdownStartTime = Date.now()
-    this.cameraOffset = 0
-    // Clear practice obstacles
-    this.obstacles = []
-    // Create preview obstacle to show during countdown
-    const topHeight = GAME_CONFIG.HEIGHT / 2 - this.currentGap / 2 - 50
-    this.previewObstacle = {
-      x: GAME_CONFIG.WIDTH + 100,
-      topHeight,
-      bottomY: topHeight + this.currentGap,
-      passed: false
+    if (this.santa.y < 0) {
+      this.santa.y = 0
+      this.santa.velocity = 0
     }
-  }
 
-  this.animationId = requestAnimationFrame(this.practiceLoop)
-}
+    // Draw ground
+    this.drawGround()
+
+    // Draw static preview obstacles (not moving, just for demonstration)
+    const practiceElapsed = Date.now() - this.practiceStartTime
+
+    // Show 3 static obstacles at different positions
+    const staticObstacles = [
+      {
+        x: GAME_CONFIG.WIDTH * 0.7,
+        topHeight: 80,
+        bottomY: 80 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.85,
+        topHeight: 150,
+        bottomY: 150 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.55,
+        topHeight: 120,
+        bottomY: 120 + this.currentGap,
+        passed: false
+      }
+    ]
+
+    // Draw static obstacles with semi-transparent effect
+    this.ctx.globalAlpha = 0.6  // Make them semi-transparent
+    staticObstacles.forEach(obstacle => this.drawObstacle(obstacle))
+    this.ctx.globalAlpha = 1.0  // Reset opacity
+
+    // Draw Santa
+    this.drawSanta()
+
+    // Draw practice hint
+    this.drawPracticeHint()
+
+    // Check if practice time is over (3 seconds)
+    if (practiceElapsed >= 3000) {
+      this.phase = 'countdown'
+      this.countdownStartTime = Date.now()
+      this.cameraOffset = 0
+      // Clear practice obstacles
+      this.obstacles = []
+      // Create preview obstacle to show during countdown
+      const topHeight = GAME_CONFIG.HEIGHT / 2 - this.currentGap / 2 - 50
+      this.previewObstacle = {
+        x: GAME_CONFIG.WIDTH + 100,
+        topHeight,
+        bottomY: topHeight + this.currentGap,
+        passed: false
+      }
+    }
+
+    this.animationId = requestAnimationFrame(this.practiceLoop)
+  }
 
   private countdownLoop = (): void => {
-  if (this.phase !== 'countdown') {
-    if (this.phase === 'playing') {
+    if (this.phase !== 'countdown') {
+      if (this.phase === 'playing') {
+        this.animationId = requestAnimationFrame(this.gameLoop)
+      }
+      return
+    }
+
+    const elapsed = Date.now() - this.countdownStartTime
+    const remaining = Math.ceil((3000 - elapsed) / 1000)
+
+    // Check if countdown is over
+    if (remaining <= 0) {
+      this.phase = 'playing'
+      this.lastObstacleTime = Date.now()
+      this.lastSpeedIncrement = Date.now()
+      // Move preview obstacle to obstacles array
+      if (this.previewObstacle) {
+        this.obstacles.push(this.previewObstacle)
+        this.previewObstacle = null
+      }
       this.animationId = requestAnimationFrame(this.gameLoop)
+      return
     }
-    return
-  }
 
-  const elapsed = Date.now() - this.countdownStartTime
-  const remaining = Math.ceil((3000 - elapsed) / 1000)
+    this.countdownValue = remaining
 
-  // Check if countdown is over
-  if (remaining <= 0) {
-    this.phase = 'playing'
-    this.lastObstacleTime = Date.now()
-    this.lastSpeedIncrement = Date.now()
-    // Move preview obstacle to obstacles array
+    // Clear canvas
+    this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
+
+    // Calculate camera slide progress (0 to 1 over 3 seconds)
+    const slideProgress = Math.min(elapsed / 3000, 1)
+    this.cameraOffset = slideProgress * 100  // Slide up to 100px
+
+    // Draw background elements
+    this.drawBackground()
+    this.drawSnow()
+
+    // Update preview obstacle position (slide in from right)
     if (this.previewObstacle) {
-      this.obstacles.push(this.previewObstacle)
-      this.previewObstacle = null
+      // Move obstacle from right edge towards more visible area
+      const targetX = GAME_CONFIG.WIDTH * 0.65  // Position at 65% of width for better visibility
+      const startX = GAME_CONFIG.WIDTH + 100
+      this.previewObstacle.x = startX - (slideProgress * (startX - targetX))
+      this.drawObstacle(this.previewObstacle)
     }
-    this.animationId = requestAnimationFrame(this.gameLoop)
-    return
+
+    // Draw ground
+    this.drawGround()
+
+    // Update and draw Santa
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
+    this.santa.y += this.santa.velocity
+
+    const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.santa.height
+    if (this.santa.y > groundY) {
+      this.santa.y = groundY
+      this.santa.velocity = 0
+    }
+    if (this.santa.y < 0) {
+      this.santa.y = 0
+      this.santa.velocity = 0
+    }
+
+    this.drawSanta()
+
+    // Draw countdown overlay
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
+    this.ctx.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
+
+    // Draw countdown number
+    this.ctx.fillStyle = '#FFD700'
+    this.ctx.font = 'bold 120px Arial'
+    this.ctx.textAlign = 'center'
+    this.ctx.textBaseline = 'middle'
+
+    const scale = 1 + Math.sin((elapsed % 1000) / 1000 * Math.PI) * 0.2
+    this.ctx.save()
+    this.ctx.translate(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 30)
+    this.ctx.scale(scale, scale)
+    this.ctx.fillText(remaining.toString(), 0, 0)
+    this.ctx.restore()
+
+    // Draw "Get Ready" text
+    this.ctx.fillStyle = '#FFFFFF'
+    this.ctx.font = 'bold 24px Arial'
+    this.ctx.textBaseline = 'alphabetic'
+    this.ctx.fillText('ỐNG KHÓI ĐANG ĐẾN!', GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 60)
+
+    this.animationId = requestAnimationFrame(this.countdownLoop)
   }
-
-  this.countdownValue = remaining
-
-  // Clear canvas
-  this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
-
-  // Calculate camera slide progress (0 to 1 over 3 seconds)
-  const slideProgress = Math.min(elapsed / 3000, 1)
-  this.cameraOffset = slideProgress * 100  // Slide up to 100px
-
-  // Draw background elements
-  this.drawBackground()
-  this.drawSnow()
-
-  // Update preview obstacle position (slide in from right)
-  if (this.previewObstacle) {
-    // Move obstacle from right edge towards more visible area
-    const targetX = GAME_CONFIG.WIDTH * 0.65  // Position at 65% of width for better visibility
-    const startX = GAME_CONFIG.WIDTH + 100
-    this.previewObstacle.x = startX - (slideProgress * (startX - targetX))
-    this.drawObstacle(this.previewObstacle)
-  }
-
-  // Draw ground
-  this.drawGround()
-
-  // Update and draw Santa
-  this.santa.velocity += this.mechanics.gravity
-  this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
-  this.santa.y += this.santa.velocity
-
-  const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT - this.santa.height
-  if (this.santa.y > groundY) {
-    this.santa.y = groundY
-    this.santa.velocity = 0
-  }
-  if (this.santa.y < 0) {
-    this.santa.y = 0
-    this.santa.velocity = 0
-  }
-
-  this.drawSanta()
-
-  // Draw countdown overlay
-  this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
-  this.ctx.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
-
-  // Draw countdown number
-  this.ctx.fillStyle = '#FFD700'
-  this.ctx.font = 'bold 120px Arial'
-  this.ctx.textAlign = 'center'
-  this.ctx.textBaseline = 'middle'
-
-  const scale = 1 + Math.sin((elapsed % 1000) / 1000 * Math.PI) * 0.2
-  this.ctx.save()
-  this.ctx.translate(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 30)
-  this.ctx.scale(scale, scale)
-  this.ctx.fillText(remaining.toString(), 0, 0)
-  this.ctx.restore()
-
-  // Draw "Get Ready" text
-  this.ctx.fillStyle = '#FFFFFF'
-  this.ctx.font = 'bold 24px Arial'
-  this.ctx.textBaseline = 'alphabetic'
-  this.ctx.fillText('ỐNG KHÓI ĐANG ĐẾN!', GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 60)
-
-  this.animationId = requestAnimationFrame(this.countdownLoop)
-}
 
   private gameLoop = (): void => {
-  if (this.gameOver || this.phase !== 'playing') return
+    if (this.gameOver || this.phase !== 'playing') return
 
-  // Clear canvas
-  this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
+    // Clear canvas
+    this.ctx.clearRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT)
 
-  // Draw background elements
-  this.drawBackground()
-  this.drawSnow()
+    // Draw background elements
+    this.drawBackground()
+    this.drawSnow()
 
-  // Update Santa physics
-  this.santa.velocity += this.mechanics.gravity
-  this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
-  this.santa.y += this.santa.velocity
+    // Update Santa physics
+    this.santa.velocity += this.mechanics.gravity
+    this.santa.velocity = Math.min(this.santa.velocity, this.mechanics.maxFallSpeed)
+    this.santa.y += this.santa.velocity
 
-  // Update obstacles
-  this.updateObstacles()
+    // Update obstacles
+    this.updateObstacles()
 
-  // Draw obstacles
-  for (const obstacle of this.obstacles) {
-    this.drawObstacle(obstacle)
+    // Draw obstacles
+    for (const obstacle of this.obstacles) {
+      this.drawObstacle(obstacle)
+    }
+
+    // Draw ground
+    this.drawGround()
+
+    // Draw Santa
+    this.drawSanta()
+
+    // Draw score
+    this.drawScore()
+
+    // Check collision
+    if (this.checkCollision()) {
+      this.endGame()
+      return
+    }
+
+    this.animationId = requestAnimationFrame(this.gameLoop)
   }
-
-  // Draw ground
-  this.drawGround()
-
-  // Draw Santa
-  this.drawSanta()
-
-  // Draw score
-  this.drawScore()
-
-  // Check collision
-  if (this.checkCollision()) {
-    this.endGame()
-    return
-  }
-
-  this.animationId = requestAnimationFrame(this.gameLoop)
-}
 
   public jump(): void {
-  if(this.gameOver) return
+    if (this.gameOver) return
 
-    if(this.phase === 'idle') {
-  this.startPractice()
-  return
-}
+    if (this.phase === 'idle') {
+      this.startPractice()
+      return
+    }
 
-// Allow jumping during practice, countdown, and playing
-if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'playing') {
-  this.santa.velocity = this.mechanics.jumpForce
-  this.sfx?.playJump()
-}
+    // Allow jumping during practice, countdown, and playing
+    if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'playing') {
+      this.santa.velocity = this.mechanics.jumpForce
+      this.sfx?.playJump()
+    }
   }
 
   public getPhase(): GamePhase {
-  return this.phase
-}
+    return this.phase
+  }
 
   private startPractice(): void {
-  this.phase = 'practice'
+    this.phase = 'practice'
     this.gameStarted = true
     this.gameOver = false
     this.score = 0
@@ -775,15 +774,15 @@ if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'p
     this.practiceStartTime = Date.now()
     this.onScoreUpdate(0)
     this.practiceLoop()
-}
+  }
 
   public start(): void {
-  if(this.gameStarted) return
+    if (this.gameStarted) return
     this.startPractice()
-}
+  }
 
   public reset(): void {
-  this.obstacles = []
+    this.obstacles = []
     this.score = 0
     this.gameOver = false
     this.gameStarted = false
@@ -798,36 +797,36 @@ if (this.phase === 'practice' || this.phase === 'countdown' || this.phase === 'p
     this.cameraOffset = 0
     this.previewObstacle = null
 
-    if(this.animationId) {
-  cancelAnimationFrame(this.animationId)
-}
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId)
+    }
 
-this.drawStartScreen()
+    this.drawStartScreen()
   }
 
   private endGame(): void {
-  this.gameOver = true
+    this.gameOver = true
     this.gameStarted = false
     this.phase = 'gameover'
 
-    if(this.animationId) {
-  cancelAnimationFrame(this.animationId)
-}
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId)
+    }
 
-this.onGameOver(this.score)
+    this.onGameOver(this.score)
   }
 
   public destroy(): void {
-  if(this.animationId) {
-  cancelAnimationFrame(this.animationId)
-}
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId)
+    }
   }
 
   public isGameOver(): boolean {
-  return this.gameOver
-}
+    return this.gameOver
+  }
 
   public getScore(): number {
-  return this.score
-}
+    return this.score
+  }
 }

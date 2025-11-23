@@ -119,10 +119,10 @@ export async function POST(request: NextRequest) {
         .select('*')
         .eq('referred_id', payload.userId)
         .eq('reward_given', false)
-        .single()
+        .maybeSingle()
 
       if (referralError) {
-        console.log('Referral lookup error (might be no referral):', referralError.message)
+        console.error('Referral lookup error:', referralError.message)
       }
 
       if (referral) {

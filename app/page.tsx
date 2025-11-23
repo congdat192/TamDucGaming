@@ -8,6 +8,7 @@ import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
 import TopMenu from '@/components/TopMenu'
+import AudioControls from '@/components/AudioControls'
 
 function HomeContent() {
   const router = useRouter()

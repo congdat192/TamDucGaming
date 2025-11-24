@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { maskPhone, maskEmail } from '@/lib/auth'
 
@@ -18,6 +17,9 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('leaderboard_weekly')
         .select('*')
+        .gt('games_played', 0)
+        .gt('weekly_score', 0)
+        .order('weekly_score', { ascending: false })
         .limit(limit)
 
       if (!error && data) {
@@ -33,6 +35,9 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('leaderboard_monthly')
         .select('*')
+        .gt('games_played', 0)
+        .gt('monthly_score', 0)
+        .order('monthly_score', { ascending: false })
         .limit(limit)
 
       if (!error && data) {
@@ -48,6 +53,9 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('leaderboard_all_time')
         .select('*')
+        .gt('games_played', 0)
+        .gt('total_score', 0)
+        .order('total_score', { ascending: false })
         .limit(limit)
 
       if (!error && data) {

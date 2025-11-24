@@ -3,8 +3,10 @@ import { cookies } from 'next/headers'
 import { verifyToken, generateVoucherCode, verifyGameToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { getGameConfig, getVoucherByScore } from '@/lib/gameConfig'
+import { getGameConfig } from '@/lib/gameConfig'
+import { getVoucherByScore, VOUCHER_TIERS } from '@/lib/voucher'
 import { Resend } from 'resend'
+import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -168,6 +170,14 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', referral.referrer_id)
 
+        // Send in-app notification to referrer
+        try {
+          await notifyReferralBonus(referral.referrer_id, config.bonusPlaysForReferral)
+          console.log(`[REFERRAL NOTIFICATION] Created for ${referral.referrer_id}`)
+        } catch (notifyError) {
+          console.error('Failed to create referral notification:', notifyError)
+        }
+
         // Send email notification to referrer
         if (referrer.email) {
           try {
@@ -215,8 +225,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Get available vouchers based on cumulative total_score
-    const { getAvailableVouchers } = await import('@/lib/gameConfig')
-    const availableVouchers = getAvailableVouchers(config, newTotalScore)
+    const availableVouchers = VOUCHER_TIERS.filter(v => newTotalScore >= v.minScore)
+
+    // Check if user just reached a new voucher tier (notify once)
+    const previousAvailableVouchers = VOUCHER_TIERS.filter(v => user.total_score >= v.minScore)
+    const newlyUnlockedVoucher = availableVouchers.find(
+      v => !previousAvailableVouchers.some(pv => pv.minScore === v.minScore)
+    )
+
+    if (newlyUnlockedVoucher) {
+      try {
+        await notifyCanRedeemVoucher(user.id, newTotalScore, newlyUnlockedVoucher.value)
+        console.log(`[VOUCHER UNLOCK NOTIFICATION] Created for ${user.id} - ${newlyUnlockedVoucher.label}`)
+      } catch (notifyError) {
+        console.error('Failed to create voucher unlock notification:', notifyError)
+      }
+    }
 
     return NextResponse.json({
       success: true,

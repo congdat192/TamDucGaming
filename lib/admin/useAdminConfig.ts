@@ -21,19 +21,16 @@ export function useAdminConfig() {
         setError('')
 
         try {
-            const token = localStorage.getItem('admin-token')
-            if (!token) {
-                throw new Error('Not authenticated')
-            }
-
+            // Cookie is sent automatically with credentials: 'include'
             const res = await fetch('/api/admin/config', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                credentials: 'include'
             })
 
             if (!res.ok) {
-                throw new Error('Failed to fetch config')
+                if (res.status === 401) {
+                    throw new Error('Chưa đăng nhập admin')
+                }
+                throw new Error('Không thể tải cấu hình')
             }
 
             const data = await res.json()
@@ -42,7 +39,7 @@ export function useAdminConfig() {
             }
         } catch (err) {
             console.error('Config fetch error:', err)
-            setError(err instanceof Error ? err.message : 'Failed to load config')
+            setError(err instanceof Error ? err.message : 'Lỗi tải cấu hình')
             // Keep using DEFAULT_CONFIG on error
         } finally {
             setLoading(false)
@@ -55,22 +52,21 @@ export function useAdminConfig() {
         setSuccess('')
 
         try {
-            const token = localStorage.getItem('admin-token')
-            if (!token) {
-                throw new Error('Not authenticated')
-            }
-
+            // Cookie is sent automatically with credentials: 'include'
             const res = await fetch('/api/admin/config', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ config: newConfig })
             })
 
             if (!res.ok) {
-                throw new Error('Failed to save config')
+                if (res.status === 401) {
+                    throw new Error('Chưa đăng nhập admin')
+                }
+                throw new Error('Không thể lưu cấu hình')
             }
 
             setConfig(newConfig)
@@ -80,7 +76,7 @@ export function useAdminConfig() {
             setTimeout(() => setSuccess(''), 3000)
         } catch (err) {
             console.error('Config save error:', err)
-            setError(err instanceof Error ? err.message : 'Failed to save config')
+            setError(err instanceof Error ? err.message : 'Lỗi lưu cấu hình')
         } finally {
             setSaving(false)
         }

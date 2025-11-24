@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 import { verifyToken, generateVoucherCode } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { getGameConfig } from '@/lib/gameConfig'
+import { VOUCHER_TIERS } from '@/lib/voucher'
+import { notifyVoucherClaimed } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
     try {
@@ -48,11 +49,8 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Get config
-        const config = await getGameConfig()
-
         // Find voucher tier
-        const voucherTier = config.voucherTiers.find(v => v.minScore === minScore)
+        const voucherTier = VOUCHER_TIERS.find(v => v.minScore === minScore)
         if (!voucherTier) {
             return NextResponse.json(
                 { error: 'Voucher không tồn tại' },
@@ -119,6 +117,14 @@ export async function POST(request: NextRequest) {
                 { error: 'Không thể tạo voucher' },
                 { status: 500 }
             )
+        }
+
+        // Send in-app notification
+        try {
+            await notifyVoucherClaimed(user.id, voucherTier.value, voucherCode)
+            console.log(`[VOUCHER NOTIFICATION] Created for ${user.id}`)
+        } catch (notifyError) {
+            console.error('[VOUCHER NOTIFICATION] Failed:', notifyError)
         }
 
         // Send voucher to user's email automatically

@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { getGameConfig } from './gameConfig'
+import { getEmailTemplates } from './emailTemplates'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -21,9 +21,9 @@ export function replaceTemplateVariables(
 
 export async function sendReferralBonusEmail(email: string, bonusPlays: number, refereeEmail: string) {
   try {
-    // Fetch game config for email template
-    const config = await getGameConfig()
-    const emailTemplate = config.emailTemplates.referralBonus
+    // Fetch email templates from separate table
+    const templates = await getEmailTemplates()
+    const emailTemplate = templates.referralBonus
 
     // Prepare template variables
     const variables = {

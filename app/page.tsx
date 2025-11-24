@@ -8,6 +8,7 @@ import BottomNavigation from '@/components/BottomNavigation'
 import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
 import TopMenu from '@/components/TopMenu'
+import NotificationBell from '@/components/NotificationBell'
 
 function HomeContent() {
   const router = useRouter()
@@ -76,6 +77,11 @@ function HomeContent() {
         onLoginClick={() => setShowLogin(true)}
         onLogoutClick={handleLogout}
       />
+
+      {/* Notification Bell - Fixed top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <NotificationBell userId={user?.id} isLoggedIn={isLoggedIn} />
+      </div>
 
       {/* Main scrollable area */}
       <div className="flex-1 overflow-y-auto pb-20 relative z-10">

@@ -14,20 +14,37 @@ export default function AdminLayout({
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const adminToken = localStorage.getItem('admin-token')
-        if (adminToken) {
-            setIsLoggedIn(true)
-        } else {
-            // If not on login page, redirect to admin root for login
-            if (pathname !== '/admin') {
-                router.push('/admin')
+        const checkAuth = async () => {
+            try {
+                const res = await fetch('/api/admin/verify')
+                const data = await res.json()
+
+                if (data.isAdmin) {
+                    setIsLoggedIn(true)
+                } else {
+                    setIsLoggedIn(false)
+                    // If not on login page, redirect to admin root for login
+                    if (pathname !== '/admin') {
+                        router.push('/admin')
+                    }
+                }
+            } catch {
+                setIsLoggedIn(false)
+                if (pathname !== '/admin') {
+                    router.push('/admin')
+                }
             }
+            setLoading(false)
         }
-        setLoading(false)
+        checkAuth()
     }, [pathname, router])
 
-    const handleLogout = () => {
-        localStorage.removeItem('admin-token')
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/admin/logout', { method: 'POST' })
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
         setIsLoggedIn(false)
         router.push('/admin')
     }
@@ -54,6 +71,8 @@ export default function AdminLayout({
     const navItems = [
         { href: '/admin/dashboard', label: '📊 Dashboard', icon: '📊' },
         { href: '/admin/config', label: '⚙️ Cấu hình Game', icon: '⚙️' },
+        { href: '/admin/notifications', label: '🔔 Thông báo', icon: '🔔' },
+        { href: '/admin/rewards', label: '🎁 Quà tặng', icon: '🎁' },
         { href: '/admin/modal-content', label: '💬 Nội dung Modal', icon: '💬' },
         { href: '/admin/email-templates', label: '📧 Email Templates', icon: '📧' },
         { href: '/admin/campaigns', label: '📅 Chiến dịch', icon: '📅' },

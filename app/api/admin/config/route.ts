@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { DEFAULT_CONFIG, clearConfigCache } from '@/lib/gameConfig'
+import { cookies } from 'next/headers'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { clearConfigCache, getGameConfig } from '@/lib/gameConfig'
 import jwt from 'jsonwebtoken'
 
-import { getGameConfig } from '@/lib/gameConfig'
+const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
 
-// Simple admin authentication - check if token exists and starts with 'admin-token'
-function isAuthenticated(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader) return false
+// Verify admin token from HTTP-only cookie
+async function verifyAdmin(): Promise<boolean> {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('admin-token')?.value
 
-  const token = authHeader.replace('Bearer ', '')
-  return token.startsWith('admin-token')
+    if (!token) return false
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { isAdmin?: boolean }
+    return decoded.isAdmin === true
+  } catch {
+    return false
+  }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
-    if (!isAuthenticated(request)) {
+    if (!await verifyAdmin()) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -40,7 +47,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    if (!isAuthenticated(request)) {
+    if (!await verifyAdmin()) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -56,12 +63,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Remove deprecated fields before saving (now stored in separate tables)
+    const cleanConfig = { ...config }
+    delete cleanConfig.voucherTiers
+    delete cleanConfig.leaderboardPrizes
+    delete cleanConfig.emailTemplates
+    delete cleanConfig.modalContent
+
     // Upsert config in database
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('game_config')
       .upsert({
         id: 'main',
-        config_data: config,
+        config_data: cleanConfig,
         updated_at: new Date().toISOString()
       })
 

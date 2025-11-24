@@ -165,7 +165,6 @@ export default function GamePage() {
     userRef.current = user
   }, [user])
 
-  const [availableVouchers, setAvailableVouchers] = useState<any[]>([])
   const [totalScore, setTotalScore] = useState(0)
 
   const handleGameOver = useCallback(async (score: number) => {
@@ -181,12 +180,6 @@ export default function GamePage() {
       })
 
       const data = await res.json()
-
-      if (data.availableVouchers) {
-        setAvailableVouchers(data.availableVouchers)
-      } else {
-        setAvailableVouchers([])
-      }
 
       if (data.totalScore !== undefined) {
         setTotalScore(data.totalScore)
@@ -294,7 +287,6 @@ export default function GamePage() {
         isOpen={showGameOver}
         score={finalScore}
         totalScore={totalScore}
-        availableVouchers={availableVouchers}
         onPlayAgain={handlePlayAgain}
         onGoHome={handleGoHome}
         playsRemaining={playsRemaining}

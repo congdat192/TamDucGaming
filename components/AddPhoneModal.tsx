@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getGameConfig, type GameConfig } from '@/lib/gameConfig'
+
+interface ModalContentData {
+  title: string
+  subtitle: string
+  buttonText: string
+  icon: string
+  badge: string
+}
 
 interface AddPhoneModalProps {
   isOpen: boolean
@@ -13,19 +20,32 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [config, setConfig] = useState<GameConfig | null>(null)
+  const [modalContent, setModalContent] = useState<ModalContentData | null>(null)
 
   useEffect(() => {
-    const loadConfig = async () => {
-      const gameConfig = await getGameConfig()
-      setConfig(gameConfig)
+    const loadContent = async () => {
+      try {
+        const res = await fetch('/api/modal-content')
+        const data = await res.json()
+        if (data.content?.addPhoneModal) {
+          setModalContent(data.content.addPhoneModal)
+        }
+      } catch (err) {
+        console.error('Failed to load modal content:', err)
+        // Use defaults if API fails
+        setModalContent({
+          title: 'Nhận thêm 3 lượt chơi',
+          subtitle: 'Cập nhật số điện thoại của bạn để nhận thêm lượt chơi',
+          buttonText: '🎁 CẬP NHẬT SỐ ĐIỆN THOẠI',
+          icon: '🎮',
+          badge: '+ 3 lượt chơi',
+        })
+      }
     }
-    loadConfig()
+    loadContent()
   }, [])
 
-  if (!isOpen || !config) return null
-
-  const modalContent = config.modalContent.addPhoneModal
+  if (!isOpen || !modalContent) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

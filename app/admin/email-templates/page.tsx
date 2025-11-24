@@ -1,9 +1,99 @@
 'use client'
 
-import { useAdminConfig } from '@/lib/admin/useAdminConfig'
+import { useState, useEffect } from 'react'
+
+interface EmailTemplate {
+    subject: string
+    fromName: string
+    fromEmail: string
+    htmlTemplate: string
+}
+
+interface EmailTemplates {
+    referralBonus: EmailTemplate
+    otpLogin: EmailTemplate
+    referralCompletion: EmailTemplate
+}
+
+const DEFAULT_TEMPLATES: EmailTemplates = {
+    referralBonus: {
+        subject: '',
+        fromName: '',
+        fromEmail: '',
+        htmlTemplate: '',
+    },
+    otpLogin: {
+        subject: '',
+        fromName: '',
+        fromEmail: '',
+        htmlTemplate: '',
+    },
+    referralCompletion: {
+        subject: '',
+        fromName: '',
+        fromEmail: '',
+        htmlTemplate: '',
+    },
+}
 
 export default function EmailTemplatesPage() {
-    const { config, setConfig, loading, saving, error, success, saveConfig } = useAdminConfig()
+    const [templates, setTemplates] = useState<EmailTemplates>(DEFAULT_TEMPLATES)
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState('')
+
+    useEffect(() => {
+        fetchTemplates()
+    }, [])
+
+    const fetchTemplates = async () => {
+        setLoading(true)
+        setError('')
+        try {
+            const res = await fetch('/api/admin/email-templates', {
+                credentials: 'include'
+            })
+            if (!res.ok) {
+                if (res.status === 401) throw new Error('Chưa đăng nhập admin')
+                throw new Error('Không thể tải templates')
+            }
+            const data = await res.json()
+            if (data.templates) {
+                setTemplates(data.templates)
+            }
+        } catch (err) {
+            console.error('Fetch templates error:', err)
+            setError(err instanceof Error ? err.message : 'Lỗi tải templates')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const saveTemplates = async () => {
+        setSaving(true)
+        setError('')
+        setSuccess('')
+        try {
+            const res = await fetch('/api/admin/email-templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ templates })
+            })
+            if (!res.ok) {
+                if (res.status === 401) throw new Error('Chưa đăng nhập admin')
+                throw new Error('Không thể lưu templates')
+            }
+            setSuccess('Email templates đã được lưu thành công!')
+            setTimeout(() => setSuccess(''), 3000)
+        } catch (err) {
+            console.error('Save templates error:', err)
+            setError(err instanceof Error ? err.message : 'Lỗi lưu templates')
+        } finally {
+            setSaving(false)
+        }
+    }
 
     if (loading) {
         return <div className="text-white">Đang tải...</div>
@@ -37,18 +127,18 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">Subject</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.referralBonus.subject}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralBonus: { ...config.emailTemplates.referralBonus, subject: e.target.value } } })}
+                                value={templates.referralBonus.subject}
+                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, subject: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} bonusPlays {'}}'}</p>
+                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}</p>
                         </div>
                         <div>
                             <label className="block text-gray-300 mb-2 text-sm">From Name</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.referralBonus.fromName}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralBonus: { ...config.emailTemplates.referralBonus, fromName: e.target.value } } })}
+                                value={templates.referralBonus.fromName}
+                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, fromName: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -56,8 +146,8 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">From Email</label>
                             <input
                                 type="email"
-                                value={config.emailTemplates.referralBonus.fromEmail}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralBonus: { ...config.emailTemplates.referralBonus, fromEmail: e.target.value } } })}
+                                value={templates.referralBonus.fromEmail}
+                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, fromEmail: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -65,12 +155,12 @@ export default function EmailTemplatesPage() {
                     <div>
                         <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
                         <textarea
-                            value={config.emailTemplates.referralBonus.htmlTemplate}
-                            onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralBonus: { ...config.emailTemplates.referralBonus, htmlTemplate: e.target.value } } })}
+                            value={templates.referralBonus.htmlTemplate}
+                            onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, htmlTemplate: e.target.value } })}
                             className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
                             rows={12}
                         />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} bonusPlays {'}}'}, {'{{'} refereeEmail {'}}'}, {'{{'} appUrl {'}}'}</p>
+                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{refereeEmail}}'}, {'{{appUrl}}'}</p>
                     </div>
                 </div>
             </div>
@@ -84,18 +174,18 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">Subject</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.otpLogin.subject}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, otpLogin: { ...config.emailTemplates.otpLogin, subject: e.target.value } } })}
+                                value={templates.otpLogin.subject}
+                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, subject: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} otp {'}}'}</p>
+                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{otp}}'}</p>
                         </div>
                         <div>
                             <label className="block text-gray-300 mb-2 text-sm">From Name</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.otpLogin.fromName}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, otpLogin: { ...config.emailTemplates.otpLogin, fromName: e.target.value } } })}
+                                value={templates.otpLogin.fromName}
+                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, fromName: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -103,8 +193,8 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">From Email</label>
                             <input
                                 type="email"
-                                value={config.emailTemplates.otpLogin.fromEmail}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, otpLogin: { ...config.emailTemplates.otpLogin, fromEmail: e.target.value } } })}
+                                value={templates.otpLogin.fromEmail}
+                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, fromEmail: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -112,12 +202,12 @@ export default function EmailTemplatesPage() {
                     <div>
                         <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
                         <textarea
-                            value={config.emailTemplates.otpLogin.htmlTemplate}
-                            onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, otpLogin: { ...config.emailTemplates.otpLogin, htmlTemplate: e.target.value } } })}
+                            value={templates.otpLogin.htmlTemplate}
+                            onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, htmlTemplate: e.target.value } })}
                             className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
                             rows={12}
                         />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} otp {'}}'}</p>
+                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{otp}}'}</p>
                     </div>
                 </div>
             </div>
@@ -131,18 +221,18 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">Subject</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.referralCompletion.subject}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralCompletion: { ...config.emailTemplates.referralCompletion, subject: e.target.value } } })}
+                                value={templates.referralCompletion.subject}
+                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, subject: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} bonusPlays {'}}'}, {'{{'} appUrl {'}}'}</p>
+                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{appUrl}}'}</p>
                         </div>
                         <div>
                             <label className="block text-gray-300 mb-2 text-sm">From Name</label>
                             <input
                                 type="text"
-                                value={config.emailTemplates.referralCompletion.fromName}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralCompletion: { ...config.emailTemplates.referralCompletion, fromName: e.target.value } } })}
+                                value={templates.referralCompletion.fromName}
+                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, fromName: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -150,8 +240,8 @@ export default function EmailTemplatesPage() {
                             <label className="block text-gray-300 mb-2 text-sm">From Email</label>
                             <input
                                 type="email"
-                                value={config.emailTemplates.referralCompletion.fromEmail}
-                                onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralCompletion: { ...config.emailTemplates.referralCompletion, fromEmail: e.target.value } } })}
+                                value={templates.referralCompletion.fromEmail}
+                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, fromEmail: e.target.value } })}
                                 className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                         </div>
@@ -159,12 +249,12 @@ export default function EmailTemplatesPage() {
                     <div>
                         <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
                         <textarea
-                            value={config.emailTemplates.referralCompletion.htmlTemplate}
-                            onChange={(e) => setConfig({ ...config, emailTemplates: { ...config.emailTemplates, referralCompletion: { ...config.emailTemplates.referralCompletion, htmlTemplate: e.target.value } } })}
+                            value={templates.referralCompletion.htmlTemplate}
+                            onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, htmlTemplate: e.target.value } })}
                             className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
                             rows={12}
                         />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{'} bonusPlays {'}}'}, {'{{'} appUrl {'}}'}</p>
+                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{appUrl}}'}</p>
                     </div>
                 </div>
             </div>
@@ -172,7 +262,7 @@ export default function EmailTemplatesPage() {
             {/* Save Button */}
             <div className="flex justify-end">
                 <button
-                    onClick={() => saveConfig(config)}
+                    onClick={saveTemplates}
                     disabled={saving}
                     className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >

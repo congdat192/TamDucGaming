@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { generateToken, generateReferralCode } from '@/lib/auth'
 import { cookies } from 'next/headers'
+import { getGameConfig } from '@/lib/gameConfig'
+import { notifyWelcome, notifyDailyBonus } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,6 +90,15 @@ export async function POST(request: NextRequest) {
       }
 
       user = newUser
+
+      // Send welcome notification
+      try {
+        const config = await getGameConfig()
+        await notifyWelcome(newUser.id, config.maxPlaysPerDay)
+        console.log(`[WELCOME NOTIFICATION] Created for ${newUser.id}`)
+      } catch (notifyError) {
+        console.error('Failed to send welcome notification:', notifyError)
+      }
     }
 
     // Process referral if provided (for both new and existing users)
@@ -123,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Check if today is a new day, reset plays_today
     const today = new Date().toISOString().split('T')[0]
-    if (user.last_play_date !== today) {
+    if (user.last_play_date !== today && !isNewUser) {
       await supabaseAdmin
         .from('users')
         .update({
@@ -133,6 +144,15 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id)
 
       user.plays_today = 0
+
+      // Send daily bonus notification (only for existing users on new day)
+      try {
+        const config = await getGameConfig()
+        await notifyDailyBonus(user.id, config.maxPlaysPerDay)
+        console.log(`[DAILY BONUS NOTIFICATION] Created for ${user.id}`)
+      } catch (notifyError) {
+        console.error('Failed to send daily bonus notification:', notifyError)
+      }
     }
 
     // Generate JWT token

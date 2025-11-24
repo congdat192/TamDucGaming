@@ -2,19 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getGameConfig, type GameConfig, type VoucherTier } from '@/lib/gameConfig'
 
-interface Voucher {
-  code: string
-  value: number
-  label: string
+interface ModalContentData {
+  title: string
+  playAgainButton: string
+  shareButton: string
+  homeButton: string
+  inviteButton: string
+  voucherSectionTitle: string
+  progressLabels: {
+    label50k: string
+    label100k: string
+    label150k: string
+  }
 }
 
 interface GameOverModalProps {
   isOpen: boolean
   score: number
   totalScore: number
-  availableVouchers: VoucherTier[]
   onPlayAgain: () => void
   onGoHome: () => void
   playsRemaining: number
@@ -25,82 +31,44 @@ export default function GameOverModal({
   isOpen,
   score,
   totalScore,
-  availableVouchers,
   onPlayAgain,
   onGoHome,
   playsRemaining,
   referralCode
 }: GameOverModalProps) {
   const router = useRouter()
-  const [copied, setCopied] = useState(false)
-  const [email, setEmail] = useState('')
-  const [emailSent, setEmailSent] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [config, setConfig] = useState<GameConfig | null>(null)
-  const [redeemedVoucher, setRedeemedVoucher] = useState<Voucher | null>(null)
-  const [redeeming, setRedeeming] = useState(false)
+  const [modalContent, setModalContent] = useState<ModalContentData | null>(null)
 
   useEffect(() => {
-    const loadConfig = async () => {
-      const gameConfig = await getGameConfig()
-      setConfig(gameConfig)
+    const loadContent = async () => {
+      try {
+        const res = await fetch('/api/modal-content')
+        const data = await res.json()
+        if (data.content?.gameOverModal) {
+          setModalContent(data.content.gameOverModal)
+        }
+      } catch (err) {
+        console.error('Failed to load modal content:', err)
+        // Use defaults if API fails
+        setModalContent({
+          title: 'GAME OVER',
+          playAgainButton: 'CHƠI LẠI',
+          shareButton: 'CHIA SẺ NHẬN +5 LƯỢT',
+          homeButton: 'Về trang chủ',
+          inviteButton: 'Mời bạn bè (+5 lượt)',
+          voucherSectionTitle: 'Chúc mừng! Bạn đã nhận được voucher',
+          progressLabels: {
+            label50k: '50K',
+            label100k: '100K',
+            label150k: '150K',
+          },
+        })
+      }
     }
-    loadConfig()
+    loadContent()
   }, [])
 
-  if (!isOpen || !config) return null
-
-  const modalContent = config.modalContent.gameOverModal
-
-  const handleRedeemVoucher = async (voucherTier: VoucherTier) => {
-    setRedeeming(true)
-    try {
-      const res = await fetch('/api/voucher/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minScore: voucherTier.minScore })
-      })
-
-      const data = await res.json()
-
-      if (data.success && data.voucher) {
-        setRedeemedVoucher(data.voucher)
-      } else {
-        alert(data.error || 'Không thể đổi voucher')
-      }
-    } catch (error) {
-      console.error('Failed to redeem voucher:', error)
-      alert('Đã xảy ra lỗi')
-    } finally {
-      setRedeeming(false)
-    }
-  }
-
-  const handleCopyVoucher = () => {
-    if (redeemedVoucher) {
-      navigator.clipboard.writeText(redeemedVoucher.code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const handleSendEmail = async () => {
-    if (!email || !redeemedVoucher) return
-    setSending(true)
-
-    try {
-      await fetch('/api/voucher/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, voucherCode: redeemedVoucher.code })
-      })
-      setEmailSent(true)
-    } catch (error) {
-      console.error('Failed to send email:', error)
-    } finally {
-      setSending(false)
-    }
-  }
+  if (!isOpen || !modalContent) return null
 
   const handleShare = () => {
     let shareUrl = window.location.origin
@@ -116,10 +84,6 @@ export default function GameOverModal({
       navigator.clipboard.writeText(text)
       alert('Đã copy link chia sẻ!')
     }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN').format(value) + 'đ'
   }
 
   return (

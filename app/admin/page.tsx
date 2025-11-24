@@ -9,28 +9,50 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    // Check if already logged in
-    const adminToken = localStorage.getItem('admin-token')
-    if (adminToken) {
-      // Redirect to dashboard
-      router.push('/admin/dashboard')
-    } else {
-      setLoading(false)
+    // Check if already logged in via API
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin/verify')
+        const data = await res.json()
+
+        if (data.isAdmin) {
+          router.push('/admin/dashboard')
+        } else {
+          setLoading(false)
+        }
+      } catch {
+        setLoading(false)
+      }
     }
+    checkAuth()
   }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSubmitting(true)
 
-    if (username === 'admin' && password === 'admin123') {
-      const token = 'admin-token-' + Date.now()
-      localStorage.setItem('admin-token', token)
-      router.push('/admin/dashboard')
-    } else {
-      setError('Sai tên đăng nhập hoặc mật khẩu')
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        router.push('/admin/dashboard')
+      } else {
+        setError(data.error || 'Sai tên đăng nhập hoặc mật khẩu')
+      }
+    } catch {
+      setError('Đã xảy ra lỗi')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -66,6 +88,7 @@ export default function AdminPage() {
               className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="admin"
               required
+              disabled={submitting}
             />
           </div>
 
@@ -78,20 +101,18 @@ export default function AdminPage() {
               className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
               required
+              disabled={submitting}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all"
+            disabled={submitting}
+            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50"
           >
-            Đăng nhập
+            {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-gray-500 text-sm">
-          <p>Default: admin / admin123</p>
-        </div>
       </div>
     </div>
   )

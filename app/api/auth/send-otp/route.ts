@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { generateOTP } from '@/lib/auth'
-import { Resend } from 'resend'
-import { getEmailTemplates } from '@/lib/emailTemplates'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { sendOtpEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,33 +64,12 @@ export async function POST(request: NextRequest) {
 
     // Send OTP
     if (isEmailLogin) {
-      // Send email OTP via Resend
-      try {
-        // Get email templates from database
-        const templates = await getEmailTemplates()
-        const otpTemplate = templates.otpLogin
-
-        // Replace placeholder with actual OTP
-        const html = otpTemplate.htmlTemplate.replace('{{otp}}', otp)
-
-        const { data, error: resendError } = await resend.emails.send({
-          from: `${otpTemplate.fromName} <${otpTemplate.fromEmail}>`,
-          to: email,
-          subject: otpTemplate.subject,
-          html
-        })
-
-        if (resendError) {
-          console.error('[RESEND ERROR]', resendError)
-          // Continue anyway - OTP is stored, user can still verify
-        } else {
-          console.log(`[EMAIL SENT] Email: ${email}, ID: ${data?.id}`)
-        }
-        console.log(`[EMAIL OTP] Email: ${email}, OTP: ${otp}`)
-      } catch (emailError) {
-        console.error('Failed to send email:', emailError)
-        // Don't return error - OTP is stored, just email failed
-        console.log(`[EMAIL OTP FALLBACK] Email: ${email}, OTP: ${otp}`)
+      // Send email OTP via email service (with fallback)
+      const sent = await sendOtpEmail(email, otp)
+      if (sent) {
+        console.log(`[EMAIL OTP] Sent to: ${email}`)
+      } else {
+        console.log(`[EMAIL OTP] Failed to send to: ${email}, OTP: ${otp}`)
       }
     } else {
       // Phone OTP - mock for now

@@ -4,11 +4,8 @@ import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
-import { getEmailTemplates } from '@/lib/emailTemplates'
 import { notifyReferralBonus } from '@/lib/notifications'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { sendReferralBonusEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -141,24 +138,14 @@ export async function POST(request: NextRequest) {
 
           // Send email notification if referrer has email
           if (referrer.email) {
-            const templates = await getEmailTemplates()
-            const emailTemplate = templates.referralBonus
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://game-noel.vercel.app'
-
-            const html = emailTemplate.htmlTemplate
-              .replace(/{{bonusPlays}}/g, String(config.bonusPlaysForReferral))
-              .replace(/{{refereeEmail}}/g, user.email || phone)
-              .replace(/{{appUrl}}/g, appUrl)
-
-            const subject = emailTemplate.subject.replace('{{bonusPlays}}', String(config.bonusPlaysForReferral))
-
-            await resend.emails.send({
-              from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-              to: referrer.email,
-              subject,
-              html
-            })
-            console.log(`[REFERRAL EMAIL] Phone update - sent to ${referrer.email}`)
+            const sent = await sendReferralBonusEmail(
+              referrer.email,
+              config.bonusPlaysForReferral,
+              user.email || phone
+            )
+            if (sent) {
+              console.log(`[REFERRAL EMAIL] Phone update - sent to ${referrer.email}`)
+            }
           }
         }
       }

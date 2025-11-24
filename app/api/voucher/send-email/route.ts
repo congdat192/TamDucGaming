@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { getEmailTemplates } from '@/lib/emailTemplates'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { sendVoucherEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,34 +36,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get email template
-    const templates = await getEmailTemplates()
-    const emailTemplate = templates.voucherClaim
+    // Format voucher info
     const expiresAtFormatted = new Date(voucher.expires_at).toLocaleDateString('vi-VN')
-
-    // Format voucher label based on value
     const voucherLabel = voucher.value >= 1000000
       ? `${(voucher.value / 1000000).toFixed(0)} triệu`
       : `${(voucher.value / 1000).toFixed(0)}K`
 
-    // Replace placeholders
-    const html = emailTemplate.htmlTemplate
-      .replace(/{{voucherLabel}}/g, voucherLabel)
-      .replace(/{{voucherCode}}/g, voucherCode)
-      .replace(/{{expiresAt}}/g, expiresAtFormatted)
+    // Send email via email service (with fallback)
+    const sent = await sendVoucherEmail(email, voucherLabel, voucherCode, expiresAtFormatted)
 
-    const subject = emailTemplate.subject.replace('{{voucherLabel}}', voucherLabel)
-
-    // Send email via Resend
-    const { data: emailResult, error: emailError } = await resend.emails.send({
-      from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-      to: email,
-      subject,
-      html
-    })
-
-    if (emailError) {
-      console.error('[VOUCHER SEND EMAIL] Failed:', emailError)
+    if (!sent) {
       return NextResponse.json(
         { error: 'Không thể gửi email' },
         { status: 500 }
@@ -80,7 +58,7 @@ export async function POST(request: NextRequest) {
       .update({ sent_to_email: email })
       .eq('code', voucherCode)
 
-    console.log(`[VOUCHER EMAIL] Sent ${voucherCode} to ${email}, ID: ${emailResult?.id}`)
+    console.log(`[VOUCHER EMAIL] Sent ${voucherCode} to ${email}`)
 
     return NextResponse.json({
       success: true,

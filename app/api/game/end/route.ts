@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifyToken, generateVoucherCode, verifyGameToken } from '@/lib/auth'
+import { verifyToken, verifyGameToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
-import { getVoucherByScore, VOUCHER_TIERS } from '@/lib/voucher'
-import { Resend } from 'resend'
+import { VOUCHER_TIERS } from '@/lib/voucher'
 import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
-import { getEmailTemplates } from '@/lib/emailTemplates'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { sendReferralCompletionEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -181,28 +178,13 @@ export async function POST(request: NextRequest) {
 
         // Send email notification to referrer
         if (referrer.email) {
-          try {
-            // Get email templates from database
-            const templates = await getEmailTemplates()
-            const emailTemplate = templates.referralCompletion
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://game-noel.vercel.app'
-
-            // Replace placeholders
-            const html = emailTemplate.htmlTemplate
-              .replace(/{{bonusPlays}}/g, String(config.bonusPlaysForReferral))
-              .replace(/{{appUrl}}/g, appUrl)
-
-            const subject = emailTemplate.subject.replace('{{bonusPlays}}', String(config.bonusPlaysForReferral))
-
-            await resend.emails.send({
-              from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-              to: referrer.email,
-              subject,
-              html
-            })
+          const sent = await sendReferralCompletionEmail(
+            referrer.email,
+            config.bonusPlaysForReferral,
+            user.email || user.phone || 'Người dùng mới'
+          )
+          if (sent) {
             console.log(`[REFERRAL EMAIL] Sent to ${referrer.email}`)
-          } catch (emailError) {
-            console.error('Failed to send referral email:', emailError)
           }
         }
       }

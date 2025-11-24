@@ -1,23 +1,8 @@
-import { Resend } from 'resend'
+import { sendEmail, replaceTemplateVariables } from './emailService'
 import { getEmailTemplates } from './emailTemplates'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-/**
- * Replace template variables in a string
- * Variables format: {{variableName}}
- */
-export function replaceTemplateVariables(
-  template: string,
-  variables: Record<string, string | number>
-): string {
-  let result = template
-  for (const [key, value] of Object.entries(variables)) {
-    const regex = new RegExp(`{{${key}}}`, 'g')
-    result = result.replace(regex, String(value))
-  }
-  return result
-}
+// Re-export for backwards compatibility
+export { replaceTemplateVariables } from './emailService'
 
 export async function sendReferralBonusEmail(email: string, bonusPlays: number, refereeEmail: string) {
   try {
@@ -36,21 +21,118 @@ export async function sendReferralBonusEmail(email: string, bonusPlays: number, 
     const subject = replaceTemplateVariables(emailTemplate.subject, variables)
     const html = replaceTemplateVariables(emailTemplate.htmlTemplate, variables)
 
-    const { data, error } = await resend.emails.send({
-      from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-      to: [email],
-      subject: subject,
-      html: html
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      from: emailTemplate.fromEmail,
+      fromName: emailTemplate.fromName
     })
 
-    if (error) {
-      console.error('Error sending referral email:', error)
-      return false
-    }
-
-    return true
+    return result.success
   } catch (error) {
     console.error('Exception sending referral email:', error)
+    return false
+  }
+}
+
+/**
+ * Send OTP email
+ */
+export async function sendOtpEmail(email: string, otp: string) {
+  try {
+    const templates = await getEmailTemplates()
+    const emailTemplate = templates.otpLogin
+
+    const variables = { otp }
+    const subject = replaceTemplateVariables(emailTemplate.subject, variables)
+    const html = replaceTemplateVariables(emailTemplate.htmlTemplate, variables)
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      from: emailTemplate.fromEmail,
+      fromName: emailTemplate.fromName
+    })
+
+    return result.success
+  } catch (error) {
+    console.error('Exception sending OTP email:', error)
+    return false
+  }
+}
+
+/**
+ * Send referral completion email (when referred user reaches threshold)
+ */
+export async function sendReferralCompletionEmail(
+  email: string,
+  bonusPlays: number,
+  referredEmail: string
+) {
+  try {
+    const templates = await getEmailTemplates()
+    const emailTemplate = templates.referralCompletion
+
+    const variables = {
+      bonusPlays,
+      referredEmail,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://santa-jump.vercel.app',
+    }
+
+    const subject = replaceTemplateVariables(emailTemplate.subject, variables)
+    const html = replaceTemplateVariables(emailTemplate.htmlTemplate, variables)
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      from: emailTemplate.fromEmail,
+      fromName: emailTemplate.fromName
+    })
+
+    return result.success
+  } catch (error) {
+    console.error('Exception sending referral completion email:', error)
+    return false
+  }
+}
+
+/**
+ * Send voucher claim email
+ */
+export async function sendVoucherEmail(
+  email: string,
+  voucherLabel: string,
+  voucherCode: string,
+  expiresAt: string
+) {
+  try {
+    const templates = await getEmailTemplates()
+    const emailTemplate = templates.voucherClaim
+
+    const variables = {
+      voucherLabel,
+      voucherCode,
+      expiresAt,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://santa-jump.vercel.app',
+    }
+
+    const subject = replaceTemplateVariables(emailTemplate.subject, variables)
+    const html = replaceTemplateVariables(emailTemplate.htmlTemplate, variables)
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      from: emailTemplate.fromEmail,
+      fromName: emailTemplate.fromName
+    })
+
+    return result.success
+  } catch (error) {
+    console.error('Exception sending voucher email:', error)
     return false
   }
 }

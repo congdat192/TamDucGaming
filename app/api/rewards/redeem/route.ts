@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken, generateVoucherCode } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user
-    const { data: user, error: userError } = await supabase
+    const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', payload.userId)
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get reward
-    const { data: reward, error: rewardError } = await supabase
+    const { data: reward, error: rewardError } = await supabaseAdmin
       .from('rewards')
       .select('*')
       .eq('id', rewardId)
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     const code = reward.type === 'voucher' ? generateVoucherCode() : null
 
     // Create redemption record
-    const { error: redemptionError } = await supabase
+    const { error: redemptionError } = await supabaseAdmin
       .from('reward_redemptions')
       .insert({
         user_id: user.id,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct points from user
-    const { error: updateUserError } = await supabase
+    const { error: updateUserError } = await supabaseAdmin
       .from('users')
       .update({
         total_score: user.total_score - reward.points_required
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Decrease stock
-    const { error: updateStockError } = await supabase
+    const { error: updateStockError } = await supabaseAdmin
       .from('rewards')
       .update({
         stock: reward.stock - 1
@@ -123,10 +124,47 @@ export async function POST(request: NextRequest) {
       console.error('Update stock error:', updateStockError)
     }
 
+    // Send email for voucher redemption
+    if (reward.type === 'voucher' && user.email) {
+      try {
+        const { Resend } = await import('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+
+        const { getEmailTemplates } = await import('@/lib/emailTemplates')
+        const templates = await getEmailTemplates()
+        const emailTemplate = templates.voucherClaim
+
+        // Calculate expiry date (30 days from now)
+        const expiryDate = new Date()
+        expiryDate.setDate(expiryDate.getDate() + 30)
+        const formattedExpiry = expiryDate.toLocaleDateString('vi-VN')
+
+        const html = emailTemplate.htmlTemplate
+          .replace(/{{voucherLabel}}/g, reward.name)
+          .replace(/{{voucherCode}}/g, code || '')
+          .replace(/{{expiresAt}}/g, formattedExpiry)
+
+        const subject = emailTemplate.subject
+          .replace('{{voucherLabel}}', reward.name)
+
+        await resend.emails.send({
+          from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
+          to: user.email,
+          subject,
+          html
+        })
+
+        console.log(`[VOUCHER EMAIL] Sent to ${user.email}`)
+      } catch (emailError) {
+        console.error('Failed to send voucher email:', emailError)
+        // Don't fail the redemption if email fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: reward.type === 'voucher'
-        ? `Đổi thành công! Mã voucher: ${code}`
+        ? `Đổi thành công! Mã voucher đã được gửi qua email: ${user.email || 'email của bạn'}`
         : 'Đổi thành công! Chúng tôi sẽ liên hệ bạn để giao quà.',
       code,
       reward: {

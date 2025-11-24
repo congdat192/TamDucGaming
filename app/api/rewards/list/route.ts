@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET() {
   try {
-    const { data: rewards, error } = await supabase
+    const { data: rewards, error } = await supabaseAdmin
       .from('rewards')
       .select('*')
       .eq('is_active', true)

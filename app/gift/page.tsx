@@ -29,9 +29,23 @@ interface Reward {
     stock: number
 }
 
+interface RedemptionHistory {
+    id: string
+    points_used: number
+    code: string | null
+    status: string
+    created_at: string
+    reward: {
+        name: string
+        type: string
+        value: number
+    }
+}
+
 export default function GiftPage() {
     const router = useRouter()
     const [rewards, setRewards] = useState<Reward[]>([])
+    const [history, setHistory] = useState<RedemptionHistory[]>([])
     const [redeemingReward, setRedeemingReward] = useState<string | null>(null)
     const [rewardSuccessMessages, setRewardSuccessMessages] = useState<Record<string, string>>({})
     const [showProfile, setShowProfile] = useState(false)
@@ -63,6 +77,21 @@ export default function GiftPage() {
         }
         loadRewards()
     }, [])
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                const res = await fetch('/api/rewards/history')
+                const data = await res.json()
+                setHistory(data.history || [])
+            } catch (error) {
+                console.error('Failed to load history:', error)
+            }
+        }
+        if (user) {
+            loadHistory()
+        }
+    }, [user])
 
     const handleRedeemReward = async (reward: Reward) => {
         setRedeemingReward(reward.id)
@@ -238,21 +267,19 @@ export default function GiftPage() {
                     <div className="flex gap-2">
                         <button
                             onClick={() => setActiveTab('voucher')}
-                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all ${
-                                activeTab === 'voucher'
-                                    ? 'bg-yellow-500 text-black'
-                                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                            }`}
+                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all ${activeTab === 'voucher'
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                }`}
                         >
                             🎟️ Voucher {vouchers.length > 0 && `(${vouchers.length})`}
                         </button>
                         <button
                             onClick={() => setActiveTab('gift')}
-                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all ${
-                                activeTab === 'gift'
-                                    ? 'bg-yellow-500 text-black'
-                                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                            }`}
+                            className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all ${activeTab === 'gift'
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                }`}
                         >
                             🎁 Quà tặng {gifts.length > 0 && `(${gifts.length})`}
                         </button>
@@ -330,6 +357,50 @@ export default function GiftPage() {
                             <span>Nhấn &quot;Đổi ngay&quot; để nhận quà</span>
                         </div>
                     </div>
+                </div>
+
+                {/* Redemption History */}
+                <div className="glass rounded-3xl p-4 max-w-md w-full mt-4">
+                    <h2 className="text-lg font-bold text-white mb-3 text-center">
+                        📜 Lịch sử đổi quà
+                    </h2>
+
+                    {history.length === 0 ? (
+                        <div className="text-center py-8 text-white/40">
+                            <div className="text-4xl mb-2 opacity-50">📭</div>
+                            <p className="text-sm">Chưa có lịch sử đổi quà</p>
+                            <p className="text-xs mt-1">Hãy tích điểm và đổi quà nhé!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {history.map((item) => (
+                                <div key={item.id} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <p className="text-white font-bold text-sm">{item.reward.name}</p>
+                                            <p className="text-white/50 text-xs mt-0.5">
+                                                {new Date(item.created_at).toLocaleDateString('vi-VN')} • {item.points_used.toLocaleString()} điểm
+                                            </p>
+                                            {item.code && (
+                                                <div className="mt-2 bg-white/10 rounded-lg p-2">
+                                                    <p className="text-white/60 text-[10px] mb-1">Mã voucher:</p>
+                                                    <p className="text-yellow-400 font-mono font-bold text-sm">{item.code}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-right ml-3">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${item.status === 'completed'
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-yellow-500/20 text-yellow-400'
+                                                }`}>
+                                                {item.status === 'completed' ? 'Hoàn tất' : 'Chờ xử lý'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getVietnamDate } from '@/lib/date'
 
 export async function GET(request: NextRequest) {
@@ -55,13 +56,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total referrals
-    const { count: totalReferrals } = await supabase
+    const { count: totalReferrals } = await supabaseAdmin
       .from('referrals')
       .select('*', { count: 'exact', head: true })
       .eq('referrer_id', user.id)
 
     // Get total games played
-    const { count: totalGamesPlayed } = await supabase
+    const { count: totalGamesPlayed } = await supabaseAdmin
       .from('game_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)

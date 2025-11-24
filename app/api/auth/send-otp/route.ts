@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { generateOTP } from '@/lib/auth'
 import { Resend } from 'resend'
+import { getEmailTemplates } from '@/lib/emailTemplates'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -69,28 +70,18 @@ export async function POST(request: NextRequest) {
     if (isEmailLogin) {
       // Send email OTP via Resend
       try {
+        // Get email templates from database
+        const templates = await getEmailTemplates()
+        const otpTemplate = templates.otpLogin
+
+        // Replace placeholder with actual OTP
+        const html = otpTemplate.htmlTemplate.replace('{{otp}}', otp)
+
         const { data, error: resendError } = await resend.emails.send({
-          from: 'Santa Jump <gaming@matkinhtamduc.com>',
+          from: `${otpTemplate.fromName} <${otpTemplate.fromEmail}>`,
           to: email,
-          subject: '🎅 Mã OTP đăng nhập Santa Jump',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 30px; border-radius: 15px; text-align: center;">
-                <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎅 SANTA JUMP 🎄</h1>
-                <p style="color: #22c55e; margin: 10px 0; font-size: 18px;">Mắt Kính Tâm Đức</p>
-              </div>
-              <div style="background: #f0f9ff; padding: 30px; border-radius: 15px; margin-top: 20px; text-align: center;">
-                <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Mã OTP của bạn là:</p>
-                <div style="background: #1e3a5f; color: #FFD700; font-size: 36px; font-weight: bold; padding: 20px 40px; border-radius: 10px; letter-spacing: 8px; display: inline-block;">
-                  ${otp}
-                </div>
-                <p style="color: #666; font-size: 14px; margin-top: 20px;">Mã có hiệu lực trong 5 phút</p>
-              </div>
-              <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">
-                By Chief Everything Officer
-              </p>
-            </div>
-          `
+          subject: otpTemplate.subject,
+          html
         })
 
         if (resendError) {

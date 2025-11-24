@@ -11,6 +11,7 @@ export interface EmailTemplates {
   referralBonus: EmailTemplate
   otpLogin: EmailTemplate
   referralCompletion: EmailTemplate
+  voucherClaim: EmailTemplate
 }
 
 // Default email templates
@@ -87,6 +88,33 @@ const DEFAULT_TEMPLATES: EmailTemplates = {
   <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">
     By Chief Everything Officer
   </p>
+</div>`,
+  },
+  voucherClaim: {
+    subject: '🎁 Voucher {{voucherLabel}} của bạn đã sẵn sàng!',
+    fromName: 'Santa Jump',
+    fromEmail: 'gaming@matkinhtamduc.com',
+    htmlTemplate: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 30px; border-radius: 15px; text-align: center;">
+    <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎅 SANTA JUMP 🎄</h1>
+    <p style="color: #22c55e; margin: 10px 0; font-size: 18px;">Mắt Kính Tâm Đức</p>
+  </div>
+  <div style="background: #f0f9ff; padding: 30px; border-radius: 15px; margin-top: 20px; text-align: center;">
+    <h2 style="color: #1e3a5f; margin-top: 0;">Chúc mừng! 🎉</h2>
+    <p style="color: #333; font-size: 16px; line-height: 1.5;">
+      Bạn đã nhận được voucher <strong>{{voucherLabel}}</strong>
+    </p>
+    <div style="background: #fff; border: 2px dashed #FFD700; padding: 20px; border-radius: 10px; margin: 20px 0;">
+      <p style="color: #666; font-size: 14px; margin: 0 0 10px 0;">Mã voucher của bạn:</p>
+      <p style="color: #000; font-size: 32px; font-weight: bold; font-family: monospace; margin: 0;">{{voucherCode}}</p>
+    </div>
+    <p style="color: #666; font-size: 14px;">
+      Voucher có giá trị đến {{expiresAt}}
+    </p>
+    <p style="color: #999; font-size: 12px; margin-top: 20px;">
+      Vui lòng xuất trình mã này khi mua hàng tại Mắt Kính Tâm Đức
+    </p>
+  </div>
 </div>`,
   },
 }

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
+import { getEmailTemplates } from '@/lib/emailTemplates'
+import { notifyReferralBonus } from '@/lib/notifications'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +116,56 @@ export async function POST(request: NextRequest) {
 
     // Referral bonus is now handled by database trigger 'on_user_phone_update'
     // This ensures data integrity and simplifies the API logic.
+
+    // Send email notification to referrer if exists
+    try {
+      const { data: referral } = await supabaseAdmin
+        .from('referrals')
+        .select('referrer_id')
+        .eq('referred_id', payload.userId)
+        .eq('reward_given', true)
+        .single()
+
+      if (referral) {
+        // Get referrer info
+        const { data: referrer } = await supabaseAdmin
+          .from('users')
+          .select('email')
+          .eq('id', referral.referrer_id)
+          .single()
+
+        if (referrer) {
+          // Send in-app notification
+          await notifyReferralBonus(referral.referrer_id, config.bonusPlaysForReferral)
+          console.log(`[REFERRAL NOTIFICATION] Phone update bonus for ${referral.referrer_id}`)
+
+          // Send email notification if referrer has email
+          if (referrer.email) {
+            const templates = await getEmailTemplates()
+            const emailTemplate = templates.referralBonus
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://game-noel.vercel.app'
+
+            const html = emailTemplate.htmlTemplate
+              .replace(/{{bonusPlays}}/g, String(config.bonusPlaysForReferral))
+              .replace(/{{refereeEmail}}/g, user.email || phone)
+              .replace(/{{appUrl}}/g, appUrl)
+
+            const subject = emailTemplate.subject.replace('{{bonusPlays}}', String(config.bonusPlaysForReferral))
+
+            await resend.emails.send({
+              from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
+              to: referrer.email,
+              subject,
+              html
+            })
+            console.log(`[REFERRAL EMAIL] Phone update - sent to ${referrer.email}`)
+          }
+        }
+      }
+    } catch (notifyError) {
+      console.error('Failed to send referral notification:', notifyError)
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       success: true,

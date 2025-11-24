@@ -13,6 +13,7 @@ interface EmailTemplates {
     referralBonus: EmailTemplate
     otpLogin: EmailTemplate
     referralCompletion: EmailTemplate
+    voucherClaim: EmailTemplate
 }
 
 const DEFAULT_TEMPLATES: EmailTemplates = {
@@ -29,6 +30,12 @@ const DEFAULT_TEMPLATES: EmailTemplates = {
         htmlTemplate: '',
     },
     referralCompletion: {
+        subject: '',
+        fromName: '',
+        fromEmail: '',
+        htmlTemplate: '',
+    },
+    voucherClaim: {
         subject: '',
         fromName: '',
         fromEmail: '',
@@ -255,6 +262,53 @@ export default function EmailTemplatesPage() {
                             rows={12}
                         />
                         <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{appUrl}}'}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Voucher Claim Email */}
+            <div className="bg-gray-800 rounded-xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">🎁 Voucher Claim Email</h2>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-gray-300 mb-2 text-sm">Subject</label>
+                            <input
+                                type="text"
+                                value={templates.voucherClaim?.subject || ''}
+                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, subject: e.target.value } })}
+                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
+                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{voucherLabel}}'}</p>
+                        </div>
+                        <div>
+                            <label className="block text-gray-300 mb-2 text-sm">From Name</label>
+                            <input
+                                type="text"
+                                value={templates.voucherClaim?.fromName || ''}
+                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, fromName: e.target.value } })}
+                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-300 mb-2 text-sm">From Email</label>
+                            <input
+                                type="email"
+                                value={templates.voucherClaim?.fromEmail || ''}
+                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, fromEmail: e.target.value } })}
+                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
+                        <textarea
+                            value={templates.voucherClaim?.htmlTemplate || ''}
+                            onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, htmlTemplate: e.target.value } })}
+                            className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+                            rows={12}
+                        />
+                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{voucherLabel}}'}, {'{{voucherCode}}'}, {'{{expiresAt}}'}</p>
                     </div>
                 </div>
             </div>

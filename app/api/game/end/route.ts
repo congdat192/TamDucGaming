@@ -7,6 +7,7 @@ import { getGameConfig } from '@/lib/gameConfig'
 import { getVoucherByScore, VOUCHER_TIERS } from '@/lib/voucher'
 import { Resend } from 'resend'
 import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
+import { getEmailTemplates } from '@/lib/emailTemplates'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -181,34 +182,23 @@ export async function POST(request: NextRequest) {
         // Send email notification to referrer
         if (referrer.email) {
           try {
+            // Get email templates from database
+            const templates = await getEmailTemplates()
+            const emailTemplate = templates.referralCompletion
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://game-noel.vercel.app'
+
+            // Replace placeholders
+            const html = emailTemplate.htmlTemplate
+              .replace(/{{bonusPlays}}/g, String(config.bonusPlaysForReferral))
+              .replace(/{{appUrl}}/g, appUrl)
+
+            const subject = emailTemplate.subject.replace('{{bonusPlays}}', String(config.bonusPlaysForReferral))
+
             await resend.emails.send({
-              from: 'Santa Jump <gaming@matkinhtamduc.com>',
+              from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
               to: referrer.email,
-              subject: '🎁 Bạn nhận được lượt chơi mới!',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                  <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 30px; border-radius: 15px; text-align: center;">
-                    <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎅 SANTA JUMP 🎄</h1>
-                    <p style="color: #22c55e; margin: 10px 0; font-size: 18px;">Mắt Kính Tâm Đức</p>
-                  </div>
-                  <div style="background: #f0f9ff; padding: 30px; border-radius: 15px; margin-top: 20px; text-align: center;">
-                    <h2 style="color: #1e3a5f; margin-top: 0;">Chúc mừng! 🎉</h2>
-                    <p style="color: #333; font-size: 16px; line-height: 1.5;">
-                      Bạn bè của bạn đã tham gia trò chơi và hoàn thành lượt chơi đầu tiên.
-                    </p>
-                    <div style="background: #22c55e; color: white; font-size: 24px; font-weight: bold; padding: 15px 30px; border-radius: 10px; display: inline-block; margin: 20px 0;">
-                      +${config.bonusPlaysForReferral} Lượt Chơi
-                    </div>
-                    <p style="color: #666; font-size: 14px;">
-                      Hãy vào game ngay để sử dụng lượt chơi mới nhé!
-                    </p>
-                    <a href="https://game-noel.vercel.app" style="display: inline-block; background: #FFD700; color: #000; text-decoration: none; font-weight: bold; padding: 12px 24px; border-radius: 25px; margin-top: 10px;">Chơi Ngay</a>
-                  </div>
-                  <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">
-                    By Chief Everything Officer
-                  </p>
-                </div>
-              `
+              subject,
+              html
             })
             console.log(`[REFERRAL EMAIL] Sent to ${referrer.email}`)
           } catch (emailError) {

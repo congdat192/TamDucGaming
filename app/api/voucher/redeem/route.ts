@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { VOUCHER_TIERS } from '@/lib/voucher'
 import { notifyVoucherClaimed } from '@/lib/notifications'
+import { getEmailTemplates } from '@/lib/emailTemplates'
 
 export async function POST(request: NextRequest) {
     try {
@@ -133,34 +134,24 @@ export async function POST(request: NextRequest) {
                 const { Resend } = await import('resend')
                 const resend = new Resend(process.env.RESEND_API_KEY)
 
+                // Get email templates from database
+                const templates = await getEmailTemplates()
+                const emailTemplate = templates.voucherClaim
+                const expiresAtFormatted = new Date(newVoucher.expires_at).toLocaleDateString('vi-VN')
+
+                // Replace placeholders
+                const html = emailTemplate.htmlTemplate
+                    .replace(/{{voucherLabel}}/g, voucherTier.label)
+                    .replace(/{{voucherCode}}/g, voucherCode)
+                    .replace(/{{expiresAt}}/g, expiresAtFormatted)
+
+                const subject = emailTemplate.subject.replace('{{voucherLabel}}', voucherTier.label)
+
                 await resend.emails.send({
-                    from: 'Santa Jump <gaming@matkinhtamduc.com>',
+                    from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
                     to: user.email,
-                    subject: `🎁 Voucher ${voucherTier.label} của bạn đã sẵn sàng!`,
-                    html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 30px; border-radius: 15px; text-align: center;">
-                <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎅 SANTA JUMP 🎄</h1>
-                <p style="color: #22c55e; margin: 10px 0; font-size: 18px;">Mắt Kính Tâm Đức</p>
-              </div>
-              <div style="background: #f0f9ff; padding: 30px; border-radius: 15px; margin-top: 20px; text-align: center;">
-                <h2 style="color: #1e3a5f; margin-top: 0;">Chúc mừng! 🎉</h2>
-                <p style="color: #333; font-size: 16px; line-height: 1.5;">
-                  Bạn đã nhận được voucher <strong>${voucherTier.label}</strong>
-                </p>
-                <div style="background: #fff; border: 2px dashed #FFD700; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                  <p style="color: #666; font-size: 14px; margin: 0 0 10px 0;">Mã voucher của bạn:</p>
-                  <p style="color: #000; font-size: 32px; font-weight: bold; font-family: monospace; margin: 0;">${voucherCode}</p>
-                </div>
-                <p style="color: #666; font-size: 14px;">
-                  Voucher có giá trị đến ${new Date(newVoucher.expires_at).toLocaleDateString('vi-VN')}
-                </p>
-                <p style="color: #999; font-size: 12px; margin-top: 20px;">
-                  Vui lòng xuất trình mã này khi mua hàng tại Mắt Kính Tâm Đức
-                </p>
-              </div>
-            </div>
-          `
+                    subject,
+                    html
                 })
                 console.log(`[VOUCHER EMAIL] Sent to ${user.email}`)
             } catch (emailError) {

@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const cookieStore = await cookies()
     const token = cookieStore.get('auth-token')?.value
@@ -76,7 +75,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const referralLink = `${process.env.NEXT_PUBLIC_BASE_URL}?ref=${user.referral_code}`
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://game.matkinhtamduc.com'
+    const referralLink = `${baseUrl}?ref=${user.referral_code}`
 
     console.log('[REFERRAL API] User ID:', user.id)
     console.log('[REFERRAL API] Total referrals:', totalReferrals)

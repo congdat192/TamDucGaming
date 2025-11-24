@@ -14,7 +14,7 @@ export async function sendReferralBonusEmail(email: string, bonusPlays: number, 
     const variables = {
       bonusPlays: bonusPlays,
       refereeEmail: refereeEmail,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://santa-jump.vercel.app',
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://game.matkinhtamduc.com',
     }
 
     // Replace variables in subject and HTML
@@ -80,7 +80,7 @@ export async function sendReferralCompletionEmail(
     const variables = {
       bonusPlays,
       referredEmail,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://santa-jump.vercel.app',
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://game.matkinhtamduc.com',
     }
 
     const subject = replaceTemplateVariables(emailTemplate.subject, variables)
@@ -119,7 +119,7 @@ export async function sendVoucherEmail(
       voucherLabel,
       voucherCode,
       expiresAt,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://santa-jump.vercel.app',
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://game.matkinhtamduc.com',
     }
 
     const subject = replaceTemplateVariables(emailTemplate.subject, variables)

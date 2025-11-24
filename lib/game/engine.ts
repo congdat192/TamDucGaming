@@ -67,6 +67,20 @@ export class SantaJumpGame {
     spawnIntervalDecrease: number
     minSpawnInterval: number
   }
+
+  // USP Slider State
+  private usps: string[] = [
+    "Mắt Kính Tâm Đức - matkinhtamduc.com",
+    "Bảo hành trọn đời - Thay ve, ốc miễn phí",
+    "Đo mắt chuẩn quốc tế - Thiết bị hiện đại",
+    "Thu cũ đổi mới - Trợ giá cực tốt",
+    "Gọng kính chính hãng - Đa dạng mẫu mã"
+  ]
+  private currentUspIndex: number = 0
+  private lastUspChangeTime: number = 0
+  private uspOpacity: number = 1
+  private uspState: 'visible' | 'fading_out' | 'fading_in' = 'visible'
+
   private sfx?: {
     playJump: () => void
     playCollectGift: () => void
@@ -187,15 +201,7 @@ export class SantaJumpGame {
       ctx.fill()
     }
 
-    // Branding text
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-    ctx.font = 'bold 12px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText('Mắt Kính Tâm Đức - matkinhtamduc.com', GAME_CONFIG.WIDTH / 2, 45)
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
-    ctx.font = '10px Arial'
-    ctx.fillText('By Chief Everything Officer', GAME_CONFIG.WIDTH / 2, 60)
+    // Branding text removed from cache - now handled dynamically in drawGround
   }
 
   private initSantaCache(): void {
@@ -357,6 +363,61 @@ export class SantaJumpGame {
     if (this.groundCanvas) {
       this.ctx.drawImage(this.groundCanvas, 0, groundY)
     }
+    this.drawGroundText()
+  }
+
+  private drawGroundText(): void {
+    const now = Date.now()
+    const ctx = this.ctx
+
+    // Handle transitions
+    if (this.uspState === 'visible' && now - this.lastUspChangeTime > 3000) {
+      this.uspState = 'fading_out'
+    } else if (this.uspState === 'fading_out') {
+      this.uspOpacity -= 0.02
+      if (this.uspOpacity <= 0) {
+        this.uspOpacity = 0
+        this.uspState = 'fading_in'
+        this.currentUspIndex = (this.currentUspIndex + 1) % this.usps.length
+      }
+    } else if (this.uspState === 'fading_in') {
+      this.uspOpacity += 0.02
+      if (this.uspOpacity >= 1) {
+        this.uspOpacity = 1
+        this.uspState = 'visible'
+        this.lastUspChangeTime = now
+      }
+    }
+
+    // Draw text
+    const text = this.usps[this.currentUspIndex]
+    const groundY = GAME_CONFIG.HEIGHT - GAME_CONFIG.GROUND_HEIGHT
+
+    ctx.save()
+    ctx.globalAlpha = Math.max(0, Math.min(1, this.uspOpacity)) // Clamp opacity
+    ctx.textAlign = 'center'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 4
+
+    const parts = text.split(' - ')
+    if (parts.length > 1) {
+      // Main USP - Positioned at top of green area (centered vertically in available space)
+      ctx.fillStyle = '#FFD700' // Gold color for main text
+      ctx.font = 'bold 15px Arial'
+      ctx.fillText(parts[0], GAME_CONFIG.WIDTH / 2, groundY + 40)
+
+      // Subtext - Positioned below
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.font = '12px Arial'
+      ctx.fillText(parts[1], GAME_CONFIG.WIDTH / 2, groundY + 60)
+    } else {
+      // Single line - Centered in green area
+      ctx.fillStyle = '#FFD700'
+      ctx.font = 'bold 14px Arial'
+      ctx.fillText(text, GAME_CONFIG.WIDTH / 2, groundY + 50)
+    }
+
+    ctx.restore()
   }
 
   private drawSanta(): void {

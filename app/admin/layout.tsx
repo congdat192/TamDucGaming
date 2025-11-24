@@ -75,6 +75,7 @@ export default function AdminLayout({
         { href: '/admin/rewards', label: '🎁 Quà tặng', icon: '🎁' },
         { href: '/admin/modal-content', label: '💬 Nội dung Modal', icon: '💬' },
         { href: '/admin/email-templates', label: '📧 Email Templates', icon: '📧' },
+        { href: '/admin/email-logs', label: '📬 Email Logs', icon: '📬' },
         { href: '/admin/campaigns', label: '📅 Chiến dịch', icon: '📅' },
     ]
 

@@ -71,7 +71,8 @@ export async function GET(request: NextRequest) {
             <p>Email này được gửi từ hệ thống email với fallback.</p>
             <p><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
           </div>
-        `
+        `,
+        emailType: 'test'
       })
     }
 

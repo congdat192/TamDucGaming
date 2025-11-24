@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
+import { supabaseAdmin } from './supabase-admin'
 
 // Email providers
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -27,6 +28,9 @@ interface SendEmailOptions {
   html: string
   from?: string
   fromName?: string
+  emailType?: string // otp, referral_bonus, referral_completion, voucher_claim, test
+  userId?: string // Optional user ID for tracking
+  metadata?: Record<string, unknown> // Additional metadata
 }
 
 // Result interface
@@ -38,12 +42,45 @@ interface SendEmailResult {
 }
 
 /**
+ * Log email to database
+ */
+async function logEmail(params: {
+  toEmail: string
+  subject: string
+  emailType: string
+  provider: string
+  status: 'success' | 'failed'
+  messageId?: string
+  errorMessage?: string
+  userId?: string
+  metadata?: Record<string, unknown>
+}): Promise<void> {
+  try {
+    await supabaseAdmin.from('email_logs').insert({
+      to_email: params.toEmail,
+      subject: params.subject,
+      email_type: params.emailType,
+      provider: params.provider,
+      status: params.status,
+      message_id: params.messageId || null,
+      error_message: params.errorMessage || null,
+      user_id: params.userId || null,
+      metadata: params.metadata || {}
+    })
+  } catch (error) {
+    // Don't fail email sending if logging fails
+    console.error('[EMAIL LOG] Failed to log email:', error)
+  }
+}
+
+/**
  * Send email with automatic fallback
  * Priority: Resend -> Gmail SMTP
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
-  const { to, subject, html, from, fromName } = options
+  const { to, subject, html, from, fromName, emailType = 'unknown', userId, metadata } = options
   const toArray = Array.isArray(to) ? to : [to]
+  const toEmail = toArray[0] // Primary recipient for logging
 
   // Default from address
   const defaultFrom = process.env.EMAIL_FROM || 'noreply@example.com'
@@ -63,6 +100,19 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
       if (!error && data) {
         console.log('[EMAIL] Sent via Resend:', data.id)
+
+        // Log success
+        await logEmail({
+          toEmail,
+          subject,
+          emailType,
+          provider: 'resend',
+          status: 'success',
+          messageId: data.id,
+          userId,
+          metadata
+        })
+
         return {
           success: true,
           provider: 'resend',
@@ -73,6 +123,18 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       // Check if it's a rate limit error
       const errorMessage = error?.message || ''
       console.warn('[EMAIL] Resend failed:', errorMessage)
+
+      // Log Resend failure (will try Gmail next)
+      await logEmail({
+        toEmail,
+        subject,
+        emailType,
+        provider: 'resend',
+        status: 'failed',
+        errorMessage: `Resend failed: ${errorMessage}`,
+        userId,
+        metadata: { ...metadata, fallback: true }
+      })
 
       // If rate limited, try fallback
       if (errorMessage.includes('rate') || errorMessage.includes('limit') || errorMessage.includes('quota')) {
@@ -98,22 +160,62 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       })
 
       console.log('[EMAIL] Sent via Gmail:', info.messageId)
+
+      // Log success
+      await logEmail({
+        toEmail,
+        subject,
+        emailType,
+        provider: 'gmail',
+        status: 'success',
+        messageId: info.messageId,
+        userId,
+        metadata
+      })
+
       return {
         success: true,
         provider: 'gmail',
         messageId: info.messageId
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       console.error('[EMAIL] Gmail failed:', error)
+
+      // Log Gmail failure
+      await logEmail({
+        toEmail,
+        subject,
+        emailType,
+        provider: 'gmail',
+        status: 'failed',
+        errorMessage: errorMsg,
+        userId,
+        metadata
+      })
+
       return {
         success: false,
-        error: `Gmail failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Gmail failed: ${errorMsg}`
       }
     }
   }
 
   // No provider available
   console.error('[EMAIL] No email provider available')
+
+  // Log no provider error
+  await logEmail({
+    toEmail,
+    subject,
+    emailType,
+    provider: 'none',
+    status: 'failed',
+    errorMessage: 'No email provider configured',
+    userId,
+    metadata
+  })
+
   return {
     success: false,
     error: 'No email provider configured or all providers failed'

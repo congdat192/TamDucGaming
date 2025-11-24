@@ -6,12 +6,21 @@ import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
 import ProfileModal from '@/components/ProfileModal'
 
+interface ReferralHistoryItem {
+  id: string
+  phone: string
+  date: string
+  status: 'success' | 'pending'
+  reward: string
+}
+
 interface ReferralData {
   referralCode: string
   referralLink: string
   totalReferrals: number
   successfulReferrals: number
   bonusPlays: number
+  history: ReferralHistoryItem[]
 }
 
 export default function ReferralPage() {
@@ -102,7 +111,7 @@ export default function ReferralPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden pb-20 bg-[#0f172a]">
+    <main className="min-h-screen relative overflow-hidden pb-24 bg-[#0f172a]">
       <Snowflakes />
 
       {/* Header */}
@@ -116,151 +125,137 @@ export default function ReferralPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="text-lg font-bold text-white">Mời Bạn Bè</h1>
+          <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">
+            Mời Bạn Bè
+          </h1>
           <div className="w-10"></div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="relative z-10 max-w-md mx-auto px-4 py-6 space-y-5">
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6 space-y-6">
 
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a4d2e] via-[#1e5631] to-[#2d6a4f] p-6 text-center">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a4d2e] via-[#0f3923] to-[#0a2615] p-6 text-center border border-white/10 shadow-2xl shadow-green-900/20">
           {/* Decorative elements */}
-          <div className="absolute top-2 left-4 text-4xl opacity-20 animate-bounce">🎁</div>
-          <div className="absolute top-4 right-6 text-3xl opacity-20 animate-pulse">🎄</div>
-          <div className="absolute bottom-2 left-8 text-2xl opacity-20">⭐</div>
-          <div className="absolute bottom-4 right-4 text-3xl opacity-20 animate-bounce delay-150">🎅</div>
+          <div className="absolute top-2 left-4 text-4xl opacity-30 animate-bounce-slow">🎁</div>
+          <div className="absolute top-4 right-6 text-3xl opacity-30 animate-pulse">🎄</div>
+          <div className="absolute bottom-2 left-8 text-2xl opacity-30 animate-spin-slow">⭐</div>
+          <div className="absolute bottom-4 right-4 text-3xl opacity-30 animate-bounce delay-150">🎅</div>
+
+          {/* Shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50"></div>
 
           {/* Main content */}
           <div className="relative z-10">
-            <div className="text-5xl mb-3">👥</div>
-            <h2 className="text-xl font-bold text-white mb-2">
+            <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-yellow-400/30">
+              <span className="text-3xl drop-shadow-lg">📨</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3 drop-shadow-md">
               Mời bạn bè tham gia
             </h2>
-            <div className="inline-flex items-center gap-2 bg-yellow-400/20 px-4 py-2 rounded-full border border-yellow-400/30">
-              <span className="text-yellow-400 font-bold text-lg">+5 lượt chơi</span>
-              <span className="text-2xl">🎮</span>
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-400/20 to-yellow-600/20 px-6 py-3 rounded-2xl border border-yellow-400/40 backdrop-blur-md shadow-lg shadow-yellow-500/10">
+              <span className="text-yellow-400 font-bold text-xl drop-shadow">+5 lượt chơi</span>
+              <span className="text-2xl animate-pulse">🎮</span>
             </div>
-            <p className="text-white/70 text-sm mt-3">
-              Mỗi bạn bè xác thực SĐT = Bạn nhận ngay 5 lượt chơi bonus!
+            <p className="text-white/80 text-sm mt-4 font-medium leading-relaxed">
+              Mỗi bạn bè xác thực SĐT thành công<br />
+              <span className="text-yellow-400">Bạn nhận ngay 5 lượt chơi bonus!</span>
             </p>
           </div>
         </div>
 
         {/* Stats Card */}
-        <div className="glass rounded-2xl p-5">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <span className="text-xl">📨</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{data?.totalReferrals || 0}</div>
-              <div className="text-[10px] text-white/50 uppercase tracking-wider">Đã mời</div>
+        <div className="glass rounded-2xl p-4 border border-white/10 bg-white/5">
+          <div className="grid grid-cols-3 gap-4 divide-x divide-white/10">
+            <div className="text-center px-1">
+              <div className="text-xl font-bold text-white">{data?.totalReferrals || 0}</div>
+              <div className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Đã mời</div>
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-green-500/20 flex items-center justify-center">
-                <span className="text-xl">✅</span>
-              </div>
-              <div className="text-2xl font-bold text-green-400">{data?.successfulReferrals || 0}</div>
-              <div className="text-[10px] text-white/50 uppercase tracking-wider">Thành công</div>
+            <div className="text-center px-1">
+              <div className="text-xl font-bold text-green-400">{data?.successfulReferrals || 0}</div>
+              <div className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Thành công</div>
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                <span className="text-xl">🎮</span>
-              </div>
-              <div className="text-2xl font-bold text-yellow-400">{data?.bonusPlays || 0}</div>
-              <div className="text-[10px] text-white/50 uppercase tracking-wider">Lượt bonus</div>
+            <div className="text-center px-1">
+              <div className="text-xl font-bold text-yellow-400">{data?.bonusPlays || 0}</div>
+              <div className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Lượt bonus</div>
             </div>
-          </div>
-        </div>
-
-        {/* Referral Code Section */}
-        <div className="glass rounded-2xl p-5">
-          <h3 className="text-white font-bold mb-3 flex items-center gap-2 text-sm">
-            <span>🎟️</span> Mã giới thiệu của bạn
-          </h3>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 bg-white/10 rounded-xl px-4 py-3 border-2 border-dashed border-yellow-400/50">
-              <div className="text-center">
-                <span className="text-2xl font-bold text-yellow-400 tracking-widest font-mono">
-                  {data?.referralCode}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleCopyCode}
-              className={`px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 ${copied
-                ? 'bg-green-500 text-white'
-                : 'bg-yellow-400 text-black hover:bg-yellow-300'
-                }`}
-            >
-              {copied ? '✓' : 'Copy'}
-            </button>
           </div>
         </div>
 
         {/* Share Link Section */}
-        <div className="space-y-3">
-          <div className="bg-white/5 rounded-2xl p-1 flex items-center gap-2 border border-white/10">
-            <div className="flex-1 px-4 py-3 text-white/70 text-xs truncate font-mono">
+        <div className="space-y-4">
+          <button
+            onClick={handleShare}
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-lg rounded-2xl hover:from-blue-500 hover:to-blue-400 transition-all transform active:scale-[0.98] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 btn-glow border border-blue-400/30 relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            <div className="flex items-center gap-2 relative z-10">
+              {/* Messenger Icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                <path d="M12 2C6.48 2 2 6.03 2 11C2 13.66 3.39 16.04 5.55 17.59C5.67 17.68 5.72 17.84 5.69 17.99L5.23 20.82C5.16 21.23 5.6 21.56 5.97 21.34L8.92 19.7C9.04 19.63 9.18 19.62 9.31 19.66C10.17 19.88 11.07 20 12 20C17.52 20 22 15.97 22 11C22 6.03 17.52 2 12 2ZM13.85 14.15L11.65 11.8L7.4 14.15L12.15 9L14.35 11.35L18.6 9L13.85 14.15Z" />
+              </svg>
+              {/* Zalo Icon */}
+              <span className="bg-white text-blue-600 text-[10px] font-bold px-1 rounded">Zalo</span>
+              <span>Chia sẻ ngay</span>
+            </div>
+          </button>
+
+          <div className="bg-black/20 rounded-2xl p-1.5 flex items-center gap-2 border border-white/10">
+            <div className="flex-1 px-4 py-3 text-white/60 text-xs truncate font-mono">
               {data?.referralLink}
             </div>
             <button
               onClick={handleCopyLink}
-              className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${copied
-                ? 'bg-green-500 text-white'
-                : 'bg-white text-black hover:bg-gray-100'
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${copied
+                ? 'bg-green-500/20 text-green-400'
+                : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
             >
               {copied ? 'Đã Copy' : 'Copy Link'}
             </button>
           </div>
-
-          <button
-            onClick={handleShare}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-base rounded-2xl hover:from-green-400 hover:to-green-500 transition-all transform active:scale-95 shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
-          >
-            <span className="text-xl">📤</span> Chia sẻ ngay cho bạn bè
-          </button>
         </div>
 
         {/* How it works */}
-        <div className="glass rounded-2xl p-5">
-          <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+        <div className="glass rounded-2xl p-6 border border-white/10">
+          <h3 className="text-white font-bold mb-6 flex items-center gap-2 text-sm uppercase tracking-wide opacity-80">
             <span>🎯</span> Cách nhận thưởng
           </h3>
 
-          <div className="space-y-4">
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg shadow-blue-500/30">
+          <div className="space-y-6 relative">
+            {/* Connecting line */}
+            <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-white/10"></div>
+
+            <div className="flex gap-4 items-start relative z-10">
+              <div className="w-10 h-10 rounded-full bg-[#0f172a] border-2 border-blue-500 flex items-center justify-center text-blue-400 font-bold text-sm shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                 1
               </div>
               <div className="flex-1 pt-1">
-                <p className="text-white text-sm font-medium">Chia sẻ mã hoặc link</p>
-                <p className="text-white/50 text-xs mt-1">Gửi cho bạn bè qua Zalo, Messenger, Facebook...</p>
+                <p className="text-white text-sm font-bold mb-1">Chia sẻ mã hoặc link</p>
+                <p className="text-white/50 text-xs leading-relaxed">Gửi cho bạn bè qua Zalo, Messenger, Facebook...</p>
               </div>
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg shadow-purple-500/30">
+            <div className="flex gap-4 items-start relative z-10">
+              <div className="w-10 h-10 rounded-full bg-[#0f172a] border-2 border-purple-500 flex items-center justify-center text-purple-400 font-bold text-sm shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
                 2
               </div>
               <div className="flex-1 pt-1">
-                <p className="text-white text-sm font-medium">Bạn bè đăng ký & xác thực SĐT</p>
-                <p className="text-white/50 text-xs mt-1">
+                <p className="text-white text-sm font-bold mb-1">Bạn bè đăng ký & xác thực</p>
+                <p className="text-white/50 text-xs leading-relaxed">
                   Người được mời cần <span className="text-yellow-400 font-medium">xác thực số điện thoại</span> để hoàn tất
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg shadow-green-500/30">
+            <div className="flex gap-4 items-start relative z-10">
+              <div className="w-10 h-10 rounded-full bg-[#0f172a] border-2 border-green-500 flex items-center justify-center text-green-400 font-bold text-sm shrink-0 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
                 3
               </div>
               <div className="flex-1 pt-1">
-                <p className="text-green-400 text-sm font-bold">Nhận ngay +5 lượt chơi! 🎉</p>
-                <p className="text-white/50 text-xs mt-1">
+                <p className="text-green-400 text-sm font-bold mb-1">Nhận ngay +5 lượt chơi! 🎉</p>
+                <p className="text-white/50 text-xs leading-relaxed">
                   Hệ thống tự động cộng lượt và thông báo qua email cho bạn
                 </p>
               </div>
@@ -269,16 +264,62 @@ export default function ReferralPage() {
         </div>
 
         {/* Tips */}
-        <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-2xl p-4">
-          <div className="flex gap-3">
-            <span className="text-2xl">💡</span>
+        <div className="bg-gradient-to-r from-yellow-400/10 to-orange-500/10 border border-yellow-400/30 rounded-2xl p-4 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-6xl opacity-5 rotate-12">💡</div>
+          <div className="flex gap-4 items-center relative z-10">
+            <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center shrink-0">
+              <span className="text-xl">💡</span>
+            </div>
             <div>
-              <p className="text-yellow-400 font-bold text-sm">Mẹo: Mời càng nhiều, thưởng càng lớn!</p>
-              <p className="text-white/60 text-xs mt-1">
-                Không giới hạn số lượng bạn bè. Mời 10 người = 50 lượt chơi bonus!
+              <p className="text-yellow-400 font-bold text-sm mb-0.5">Mẹo: Mời càng nhiều, thưởng càng lớn!</p>
+              <p className="text-white/60 text-xs">
+                Không giới hạn số lượng. Mời 10 người = 50 lượt chơi bonus!
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Referral History */}
+        <div className="glass rounded-2xl p-6 border border-white/10">
+          <h3 className="text-white font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wide opacity-80">
+            <span>📜</span> Lịch sử giới thiệu
+          </h3>
+
+          {data?.history && data.history.length > 0 ? (
+            <div className="space-y-3">
+              {data.history.map((item) => (
+                <div key={item.id} className="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-lg">
+                      👤
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">{item.phone}</p>
+                      <p className="text-white/40 text-xs">
+                        {new Date(item.date).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm font-bold ${item.status === 'success' ? 'text-green-400' : 'text-yellow-400'
+                      }`}>
+                      {item.reward}
+                    </div>
+                    <div className={`text-[10px] uppercase tracking-wide ${item.status === 'success' ? 'text-green-400/50' : 'text-yellow-400/50'
+                      }`}>
+                      {item.status === 'success' ? 'Thành công' : 'Chờ xác thực'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-white/40">
+              <div className="text-4xl mb-2 opacity-50">📭</div>
+              <p className="text-sm">Chưa có ai tham gia</p>
+              <p className="text-xs mt-1">Hãy mời bạn bè ngay nhé!</p>
+            </div>
+          )}
         </div>
 
       </div>

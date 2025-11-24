@@ -100,13 +100,19 @@ export default function BottomNavigation({
         <Link
           href="/referral"
           onClick={handleReferralClick}
-          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 ${pathname === '/referral'
+          className={`relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all active:scale-95 ${pathname === '/referral'
             ? 'bg-yellow-400/20 text-yellow-400'
             : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
         >
-          <span className="text-xl">👥</span>
-          <span className="text-[10px] font-medium">Giới thiệu</span>
+          <div className="relative">
+            <span className="text-xl">👥</span>
+            {/* Badge */}
+            <span className="absolute -top-2 -right-6 bg-gradient-to-r from-yellow-400 to-yellow-500 text-[#0f172a] text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-lg">
+              +5 lượt
+            </span>
+          </div>
+          <span className="text-[10px] font-medium">Mời bạn</span>
         </Link>
       </div>
     </nav>

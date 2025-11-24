@@ -277,6 +277,34 @@ export class SantaJumpGame {
   private drawStartScreen(): void {
     this.drawBackground()
     // this.drawSnow() // Removed snow
+
+    // Draw demo obstacles (static, semi-transparent)
+    const demoObstacles = [
+      {
+        x: GAME_CONFIG.WIDTH * 0.7,
+        topHeight: 80,
+        bottomY: 80 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.85,
+        topHeight: 150,
+        bottomY: 150 + this.currentGap,
+        passed: false
+      },
+      {
+        x: GAME_CONFIG.WIDTH * 0.55,
+        topHeight: 120,
+        bottomY: 120 + this.currentGap,
+        passed: false
+      }
+    ]
+
+    // Draw demo obstacles with semi-transparent effect
+    this.ctx.globalAlpha = 0.5
+    demoObstacles.forEach(obstacle => this.drawObstacle(obstacle))
+    this.ctx.globalAlpha = 1.0
+
     this.drawGround()
     this.drawSanta()
 
@@ -607,7 +635,7 @@ export class SantaJumpGame {
 
     // Check if practice time is over (3 seconds)
     if (practiceElapsed >= 3000) {
-      this.phase = 'countdown'
+      this.setPhase('countdown')
       this.countdownStartTime = Date.now()
       this.cameraOffset = 0
       // Clear practice obstacles
@@ -638,7 +666,7 @@ export class SantaJumpGame {
 
     // Check if countdown is over
     if (remaining <= 0) {
-      this.phase = 'playing'
+      this.setPhase('playing')
       this.lastObstacleTime = Date.now()
       this.lastSpeedIncrement = Date.now()
       // Move preview obstacle to obstacles array
@@ -791,7 +819,7 @@ export class SantaJumpGame {
   }
 
   private startPractice(): void {
-    this.phase = 'practice'
+    this.setPhase('practice')
     this.gameStarted = true
     this.gameOver = false
     this.score = 0

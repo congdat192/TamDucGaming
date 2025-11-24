@@ -15,6 +15,7 @@ export class AudioManager {
     private sfxVolume: number = 0.7
     private bgmMuted: boolean = false
     private sfxMuted: boolean = false
+    private listeners: Set<() => void> = new Set()
 
     private constructor() {
         // Load settings from localStorage
@@ -50,6 +51,22 @@ export class AudioManager {
             bgmMuted: this.bgmMuted,
             sfxMuted: this.sfxMuted
         }))
+
+        // Notify all listeners
+        this.notifyListeners()
+    }
+
+    // Event system for state synchronization
+    addListener(callback: () => void) {
+        this.listeners.add(callback)
+    }
+
+    removeListener(callback: () => void) {
+        this.listeners.delete(callback)
+    }
+
+    private notifyListeners() {
+        this.listeners.forEach(callback => callback())
     }
 
     // BGM Methods

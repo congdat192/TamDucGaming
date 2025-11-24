@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
+import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import ProfileModal from '@/components/ProfileModal'
 import { useBGM } from '@/hooks/useBGM'
 
@@ -286,6 +287,7 @@ export default function LeaderboardPage() {
       />
 
       {/* Bottom Navigation - luôn hiển thị */}
+      <FloatingAudioToggle />
       <BottomNavigation
         onProfileClick={() => setShowProfile(true)}
         onLoginClick={() => router.push('/')}

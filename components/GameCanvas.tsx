@@ -136,16 +136,25 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
 
       {/* Practice Mode Overlay - Shows instructions during practice */}
       {isPracticeMode && (
-        <div className="absolute inset-0 flex items-start justify-center pt-8 rounded-2xl pointer-events-none">
-          <div className="text-center">
-            <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-8 py-4 rounded-2xl shadow-2xl border-4 border-white animate-pulse">
-              <p className="text-white text-2xl font-black mb-2 drop-shadow-lg">
-                👆 NHẤN ĐỂ NHẢY 👆
-              </p>
-              <p className="text-white/90 text-sm font-bold">
-                Thử vài lần để làm quen!
-              </p>
-            </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-start pt-4 rounded-2xl pointer-events-none px-4">
+          {/* Main instruction */}
+          <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 rounded-2xl shadow-2xl border-4 border-white animate-pulse mb-3">
+            <p className="text-white text-2xl font-black drop-shadow-lg text-center">
+              👆 NHẤN ĐỂ NHẢY 👆
+            </p>
+          </div>
+
+          {/* Practice tips */}
+          <div className="bg-black/70 backdrop-blur-sm px-5 py-3 rounded-xl border border-white/20 max-w-sm">
+            <p className="text-yellow-400 text-sm font-bold mb-2 text-center">
+              🎯 MÀN HÌNH LUYỆN TẬP
+            </p>
+            <ul className="text-white/90 text-xs space-y-1">
+              <li>• Nhấn màn hình hoặc Space để nhảy</li>
+              <li>• Tránh chướng ngại vật màu đỏ</li>
+              <li>• Thử vài lần để làm quen nhịp độ</li>
+              <li>• Màn hình này không tính điểm</li>
+            </ul>
           </div>
         </div>
       )}
@@ -166,12 +175,18 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
               </span>
             </div>
 
-            {/* Practice Instructions - Show on start screen */}
-            <div className="mt-6 animate-pulse">
-              <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 rounded-xl shadow-xl border-2 border-white inline-block">
-                <p className="text-white text-base font-black drop-shadow-lg">
-                  👆 NHẤN ĐỂ NHẢY 👆
+            {/* Game Instructions - Show on start screen */}
+            <div className="mt-6">
+              <div className="bg-black/70 backdrop-blur-sm px-5 py-3 rounded-xl border border-white/20 max-w-sm mx-auto">
+                <p className="text-yellow-400 text-sm font-bold mb-2 text-center">
+                  🎯 CÁCH CHƠI
                 </p>
+                <ul className="text-white/90 text-xs space-y-1">
+                  <li>• Nhấn màn hình hoặc Space để nhảy</li>
+                  <li>• Tránh chướng ngại vật ống khói</li>
+                  <li>• Mỗi ống khói vượt qua = +1 điểm</li>
+                  <li>• Chạm ống khói hoặc mặt đất = Game Over</li>
+                </ul>
               </div>
             </div>
           </div>

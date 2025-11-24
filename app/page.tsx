@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import LoginModal from '@/components/LoginModal'
 import ProfileModal from '@/components/ProfileModal'
 import BottomNavigation from '@/components/BottomNavigation'
+import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
 import TopMenu from '@/components/TopMenu'
@@ -219,6 +220,7 @@ function HomeContent() {
       />
 
       {/* Bottom Navigation */}
+      <FloatingAudioToggle />
       <BottomNavigation
         onProfileClick={() => setShowProfile(true)}
         onLoginClick={() => setShowLogin(true)}

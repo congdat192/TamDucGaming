@@ -26,6 +26,17 @@ export default function TopMenu({
     // Initialize audio state
     useEffect(() => {
         setIsMuted(audioManager.isMasterMuted())
+
+        // Listen for changes from other components
+        const handleAudioChange = () => {
+            setIsMuted(audioManager.isMasterMuted())
+        }
+
+        audioManager.addListener(handleAudioChange)
+
+        return () => {
+            audioManager.removeListener(handleAudioChange)
+        }
     }, [])
 
     // Close menu when route changes

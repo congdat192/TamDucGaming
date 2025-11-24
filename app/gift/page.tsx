@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
+import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import ProfileModal from '@/components/ProfileModal'
 
 interface User {
@@ -390,8 +391,8 @@ export default function GiftPage() {
                                         </div>
                                         <div className="text-right ml-3">
                                             <span className={`text-xs font-bold px-2 py-1 rounded-full ${item.status === 'completed'
-                                                    ? 'bg-green-500/20 text-green-400'
-                                                    : 'bg-yellow-500/20 text-yellow-400'
+                                                ? 'bg-green-500/20 text-green-400'
+                                                : 'bg-yellow-500/20 text-yellow-400'
                                                 }`}>
                                                 {item.status === 'completed' ? 'Hoàn tất' : 'Chờ xử lý'}
                                             </span>
@@ -417,6 +418,7 @@ export default function GiftPage() {
             />
 
             {/* Bottom Navigation */}
+            <FloatingAudioToggle />
             <BottomNavigation
                 onProfileClick={() => setShowProfile(true)}
                 onLoginClick={() => router.push('/')}

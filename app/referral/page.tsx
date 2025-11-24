@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
+import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import ProfileModal from '@/components/ProfileModal'
 
 interface ReferralHistoryItem {
@@ -337,6 +338,7 @@ export default function ReferralPage() {
       />
 
       {/* Bottom Navigation */}
+      <FloatingAudioToggle />
       <BottomNavigation
         onProfileClick={() => setShowProfile(true)}
         isLoggedIn={true}

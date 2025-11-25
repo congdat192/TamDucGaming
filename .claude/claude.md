@@ -156,6 +156,40 @@
 
 ### Bug Prevent Log
 
+#### [2025-11-25] [BUG] User bonus plays not saved when adding phone
+**Description:** User adds phone and modal shows "+4 lượt chơi", but database `bonus_plays` remains 0. Play logs correctly record +4, but user update doesn't persist.
+
+**Root cause:**
+- API used `supabase` client (anon key) instead of `supabaseAdmin` (service role key)
+- RPC function `add_bonus_plays` executed and logged to `play_logs` table
+- BUT the `UPDATE users SET bonus_plays = ...` failed silently due to insufficient permissions
+- Anon key client has RLS restrictions that prevent direct updates even through RPC
+
+**Prevention:**
+1. **ALWAYS use `supabaseAdmin` in API routes for database writes**
+2. Check all API routes in `/app/api/*` that modify user data
+3. `supabase` (anon key) should ONLY be used for:
+   - Client-side reads respecting RLS
+   - Server-side reads when RLS is acceptable
+4. `supabaseAdmin` (service role key) should be used for:
+   - ALL server-side writes (INSERT, UPDATE, DELETE)
+   - RPC function calls that modify data
+   - Operations that need to bypass RLS
+
+**Solution implemented:**
+- Changed `supabase.rpc()` → `supabaseAdmin.rpc()` in add-phone-bonus route
+- Changed `supabase.from('users').update()` → `supabaseAdmin.from('users').update()`
+- Verified all database modifications use admin client
+
+**Rule:**
+- ❌ Never use `supabase` (anon key) for database writes in API routes
+- ❌ Never assume RPC functions work correctly with anon key
+- ✅ Always use `supabaseAdmin` for INSERT/UPDATE/DELETE in server-side code
+- ✅ Always use `supabaseAdmin` for RPC calls that modify data
+- ✅ Double-check: If API route modifies database → must use `supabaseAdmin`
+
+---
+
 #### [2025-11-25] [BUG] Leaderboard showing stale data on production
 **Description:** Production UI showed 81 points while API returned 300 points. Localhost worked correctly.
 

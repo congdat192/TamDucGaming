@@ -224,6 +224,56 @@
 
 ---
 
+#### [2025-01-26] [BUG] Game sessions saved but total_score not updated
+
+**Description:** User play history showed 106 points (from game_sessions), but profile and leaderboard showed only 18 points (from users.total_score). Affected 6 out of 41 users with inconsistent data.
+
+**Root cause:**
+- In `/api/game/end`, if `users.total_score` update fails, the error is only logged but execution continues
+- The API returns success even though total_score wasn't updated
+- Game session is saved to `game_sessions` table, but `users.total_score` remains stale
+- This creates data inconsistency: sum(game_sessions.score) ≠ users.total_score
+
+**Code issue (line 143-145):**
+```typescript
+if (updateError) {
+  console.error('[GAME END] Failed to update user score:', updateError)
+  // ❌ No return - continues execution and returns success!
+}
+```
+
+**Prevention:**
+1. **ALWAYS return error** when critical database operations fail
+2. Never silently log errors for operations that affect core business logic (scores, payments, etc.)
+3. Implement data consistency checks via scheduled jobs or triggers
+4. Created `scripts/fix-total-score.ts` to recalculate and fix inconsistencies
+
+**Solution implemented:**
+- Changed error handling to return 500 error immediately if total_score update fails
+- Created fix script that recalculates total_score from game_sessions for all users
+- Added npm script `npm run fix-score [email]` to fix specific user or all users
+- Fixed 6 users with data inconsistencies (total difference: +484 points)
+
+**Rule:**
+- ❌ Never silently log errors for critical operations (scores, money, inventory, etc.)
+- ❌ Never continue execution after critical database write fails
+- ✅ Always return error response immediately when critical operations fail
+- ✅ Always validate that critical updates succeeded before returning success
+- ✅ Create data consistency check scripts for important aggregated fields
+
+**Data fixed:**
+```
+tiendatabv@gmail.com:        18 → 106 (+88)
+dnbtram@matkinhtamduc.com:    2 → 12  (+10)
+ptranhongan@gmail.com:        1 → 71  (+70)
+namnguyen1506@gmail.com:      3 → 209 (+206)
+congdat192@gmail.com:        42 → 62  (+20)
+tranquynh2105@gmail.com:     65 → 145 (+80)
+phukienmatkinh668@gmail.com: 21 → 51  (+30)
+```
+
+---
+
 #### [2025-11-25] [BUG] Voucher emails sent but not logged
 **Description:** User received voucher emails but no logs appeared in `email_logs` table.
 

@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update user's total score
+    // Update user's total score (CRITICAL: Must succeed)
     const newTotalScore = user.total_score + score
     const { error: updateError } = await supabaseAdmin
       .from('users')
@@ -141,7 +141,11 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
 
     if (updateError) {
-      console.error('[GAME END] Failed to update user score:', updateError)
+      console.error('[GAME END] CRITICAL: Failed to update user score:', updateError)
+      return NextResponse.json(
+        { error: 'Không thể cập nhật điểm số' },
+        { status: 500 }
+      )
     }
 
     // Check for referral reward (first game completed by referred user)

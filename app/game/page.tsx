@@ -48,8 +48,6 @@ export default function GamePage() {
   const [showAddPhone, setShowAddPhone] = useState(false)
   const [showOutOfPlaysModal, setShowOutOfPlaysModal] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
-  const [pendingGameOver, setPendingGameOver] = useState(false)
-  const [voucher, setVoucher] = useState<Voucher | null>(null)
   const [playsRemaining, setPlaysRemaining] = useState(0)
   const [gameToken, setGameToken] = useState<string | null>(null)
 
@@ -191,19 +189,24 @@ export default function GamePage() {
       console.error('Failed to submit score:', error)
     }
 
-    // Logic: If user has no phone, show AddPhoneModal first
-    const currentUser = userRef.current
-    if (currentUser && !currentUser.phone) {
-      setShowAddPhone(true)
-      setPendingGameOver(true)
-    } else {
-      setShowGameOver(true)
-    }
-  }, [gameToken]) // Removed user dependency
+    // NEW LOGIC: Always show GameOverModal after game ends
+    setShowGameOver(true)
+  }, [gameToken])
 
   const handlePlayAgain = () => {
     setShowGameOver(false)
-    setVoucher(null)
+
+    // Check if user has plays remaining
+    if (playsRemaining <= 0) {
+      // Out of plays - show appropriate modal
+      if (user && !user.phone) {
+        setShowAddPhone(true)
+      } else {
+        setShowOutOfPlaysModal(true)
+      }
+      return
+    }
+
     handleStartGame()
   }
 
@@ -291,6 +294,7 @@ export default function GamePage() {
         onGoHome={handleGoHome}
         playsRemaining={playsRemaining}
         referralCode={user?.referral_code}
+        hasPhone={!!user?.phone}
       />
 
       {/* Profile Modal */}
@@ -307,19 +311,10 @@ export default function GamePage() {
       {/* Add Phone Modal - hiển thị khi hết lượt và chưa có SĐT */}
       <AddPhoneModal
         isOpen={showAddPhone}
-        onClose={() => {
-          setShowAddPhone(false)
-          if (pendingGameOver) {
-            setShowGameOver(true)
-            setPendingGameOver(false)
-          }
-        }}
+        onClose={() => setShowAddPhone(false)}
         onSuccess={() => {
+          setShowAddPhone(false)
           refreshAuth() // Refresh user data để cập nhật lượt chơi mới
-          if (pendingGameOver) {
-            setShowGameOver(true)
-            setPendingGameOver(false)
-          }
         }}
       />
 

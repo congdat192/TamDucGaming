@@ -9,12 +9,18 @@ interface ModalContentData {
   shareButton: string
   homeButton: string
   inviteButton: string
+  addPhoneButton: string
   voucherSectionTitle: string
   progressLabels: {
     label50k: string
     label100k: string
     label150k: string
   }
+}
+
+interface GameConfig {
+  bonusPlaysForPhone: number
+  bonusPlaysForReferral: number
 }
 
 interface GameOverModalProps {
@@ -25,6 +31,7 @@ interface GameOverModalProps {
   onGoHome: () => void
   playsRemaining: number
   referralCode?: string
+  hasPhone?: boolean
 }
 
 export default function GameOverModal({
@@ -34,18 +41,31 @@ export default function GameOverModal({
   onPlayAgain,
   onGoHome,
   playsRemaining,
-  referralCode
+  referralCode,
+  hasPhone = false
 }: GameOverModalProps) {
   const router = useRouter()
   const [modalContent, setModalContent] = useState<ModalContentData | null>(null)
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null)
 
   useEffect(() => {
     const loadContent = async () => {
       try {
-        const res = await fetch('/api/modal-content')
-        const data = await res.json()
-        if (data.content?.gameOverModal) {
-          setModalContent(data.content.gameOverModal)
+        // Load modal content
+        const contentRes = await fetch('/api/modal-content')
+        const contentData = await contentRes.json()
+        if (contentData.content?.gameOverModal) {
+          setModalContent(contentData.content.gameOverModal)
+        }
+
+        // Load game config for dynamic bonus values
+        const configRes = await fetch('/api/config/public')
+        const configData = await configRes.json()
+        if (configData.config) {
+          setGameConfig({
+            bonusPlaysForPhone: configData.config.bonusPlaysForPhone,
+            bonusPlaysForReferral: configData.config.bonusPlaysForReferral
+          })
         }
       } catch (err) {
         console.error('Failed to load modal content:', err)
@@ -56,12 +76,17 @@ export default function GameOverModal({
           shareButton: 'CHIA SẺ NHẬN +5 LƯỢT',
           homeButton: 'Về trang chủ',
           inviteButton: 'Mời bạn bè (+5 lượt)',
+          addPhoneButton: 'Cập nhật SĐT (+4 lượt)',
           voucherSectionTitle: 'Chúc mừng! Bạn đã nhận được voucher',
           progressLabels: {
             label50k: '50K',
             label100k: '100K',
             label150k: '150K',
           },
+        })
+        setGameConfig({
+          bonusPlaysForPhone: 4,
+          bonusPlaysForReferral: 5
         })
       }
     }
@@ -104,34 +129,42 @@ export default function GameOverModal({
         {/* Actions */}
         <div className="space-y-2">
           {playsRemaining > 0 ? (
-            // Case 1: Has plays -> Show Play Again ONLY
+            // Case 1: Has plays -> Show Play Again button
             <button
               onClick={onPlayAgain}
               className="w-full py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-base rounded-xl hover:from-red-600 hover:to-red-700 transition shadow-lg shadow-red-500/20 animate-pulse">
               {modalContent.playAgainButton} ({playsRemaining} lượt)
             </button>
           ) : (
-            // Case 2: Out of plays -> Show 3 buttons
+            // Case 2: Out of plays -> Show different button based on phone status
             <>
-              {/* Disabled Play Again */}
-              <button
-                disabled
-                className="w-full py-3.5 bg-white/5 text-white/40 font-bold text-base rounded-xl cursor-not-allowed border border-white/10">
-                🎮 Đã hết lượt chơi
-              </button>
-
-              {/* Invite Friends -> Go to Referral Page */}
-              <button
-                onClick={() => router.push('/referral')}
-                className="w-full py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm rounded-xl hover:from-green-600 hover:to-emerald-700 transition shadow-lg shadow-green-500/20">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-xl">🎁</span>
-                  <div>
-                    <div className="text-xs text-green-100">Mời bạn bè chơi</div>
-                    <div className="font-bold">{modalContent.inviteButton.toUpperCase()}</div>
+              {!hasPhone ? (
+                // User CHƯA có SĐT -> Show "Add Phone" button
+                <button
+                  onClick={onPlayAgain}
+                  className="w-full py-3.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-sm rounded-xl hover:from-yellow-300 hover:to-orange-400 transition shadow-lg shadow-yellow-400/20">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xl">📱</span>
+                    <div>
+                      <div className="text-xs text-black/70">Nhận thêm lượt chơi</div>
+                      <div className="font-bold">CẬP NHẬT SĐT (+{gameConfig?.bonusPlaysForPhone || 4} LƯỢT)</div>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+              ) : (
+                // User ĐÃ có SĐT -> Show "Invite Friends" button
+                <button
+                  onClick={onPlayAgain}
+                  className="w-full py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm rounded-xl hover:from-green-600 hover:to-emerald-700 transition shadow-lg shadow-green-500/20">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xl">🎁</span>
+                    <div>
+                      <div className="text-xs text-green-100">Mời bạn bè chơi</div>
+                      <div className="font-bold">MỜI BẠN BÈ (+{gameConfig?.bonusPlaysForReferral || 5} LƯỢT)</div>
+                    </div>
+                  </div>
+                </button>
+              )}
             </>
           )}
 

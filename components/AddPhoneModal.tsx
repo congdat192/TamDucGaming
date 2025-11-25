@@ -10,6 +10,10 @@ interface ModalContentData {
   badge: string
 }
 
+interface GameConfig {
+  bonusPlaysForPhone: number
+}
+
 interface AddPhoneModalProps {
   isOpen: boolean
   onClose: () => void
@@ -21,24 +25,38 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [modalContent, setModalContent] = useState<ModalContentData | null>(null)
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null)
 
   useEffect(() => {
     const loadContent = async () => {
       try {
-        const res = await fetch('/api/modal-content')
-        const data = await res.json()
-        if (data.content?.addPhoneModal) {
-          setModalContent(data.content.addPhoneModal)
+        // Load modal content
+        const contentRes = await fetch('/api/modal-content')
+        const contentData = await contentRes.json()
+        if (contentData.content?.addPhoneModal) {
+          setModalContent(contentData.content.addPhoneModal)
+        }
+
+        // Load game config for dynamic bonus value
+        const configRes = await fetch('/api/config/public')
+        const configData = await configRes.json()
+        if (configData.config) {
+          setGameConfig({
+            bonusPlaysForPhone: configData.config.bonusPlaysForPhone
+          })
         }
       } catch (err) {
         console.error('Failed to load modal content:', err)
         // Use defaults if API fails
         setModalContent({
-          title: 'Nhận thêm 3 lượt chơi',
+          title: 'Nhận thêm lượt chơi',
           subtitle: 'Cập nhật số điện thoại của bạn để nhận thêm lượt chơi',
           buttonText: '🎁 CẬP NHẬT SỐ ĐIỆN THOẠI',
           icon: '🎮',
-          badge: '+ 3 lượt chơi',
+          badge: '+ 4 lượt chơi',
+        })
+        setGameConfig({
+          bonusPlaysForPhone: 4
         })
       }
     }
@@ -108,7 +126,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
           <div className="mb-6 relative inline-block">
             <div className="text-7xl animate-bounce">{modalContent.icon}</div>
             <div className="absolute -bottom-2 -right-2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-lg rotate-12 whitespace-nowrap">
-              {modalContent.badge}
+              + {gameConfig?.bonusPlaysForPhone || 4} lượt chơi
             </div>
           </div>
 

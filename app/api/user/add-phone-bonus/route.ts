@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
     // Update user with phone and add bonus plays (using config from DB)
     const bonusPlays = config.bonusPlaysForPhone
 
-    // 1. Update phone number first
-    const { error: updatePhoneError } = await supabase
+    // 1. Update phone number first (using admin client for proper permissions)
+    const { error: updatePhoneError } = await supabaseAdmin
       .from('users')
       .update({ phone })
       .eq('id', payload.userId)
@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Add bonus plays via RPC
-    const { error: rpcError } = await supabase.rpc('add_bonus_plays', {
+    // 2. Add bonus plays via RPC (using admin client for proper permissions)
+    const { error: rpcError } = await supabaseAdmin.rpc('add_bonus_plays', {
       target_user_id: payload.userId,
       bonus_amount: bonusPlays,
       reason_text: 'phone_update'
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (rpcError) {
       console.error('Error adding bonus plays via RPC:', rpcError)
       // Fallback: manually update bonus plays if RPC fails
-      await supabase
+      await supabaseAdmin
         .from('users')
         .update({
           bonus_plays: (user.bonus_plays || 0) + bonusPlays

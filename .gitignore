@@ -24,6 +24,7 @@ yarn-error.log*
 # IDE
 .idea/
 .vscode/
+.claude/settings.local.json
 *.swp
 *.swo
 

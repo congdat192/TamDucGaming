@@ -99,4 +99,7 @@ npm start
 3. **API Routes:** Always return `NextResponse.json()` with proper status codes
 4. **Client Components:** Use `'use client'` directive for interactive components
 5. **Authentication:** JWT tokens stored in HTTP-only cookies, OTP-based verification
-6. **Email Service:** Auto-fallback from Resend to Gmail SMTP if rate limited
+6. **Email Service:**
+   - **ALWAYS** use `lib/email.ts` or `lib/emailService.ts` for sending emails.
+   - **NEVER** use `resend` or `nodemailer` directly in API routes.
+   - This ensures all emails are logged to `email_logs` table and fallback logic works.

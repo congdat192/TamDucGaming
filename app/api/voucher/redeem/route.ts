@@ -129,35 +129,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Send voucher to user's email automatically
+        // Send voucher to user's email automatically
         if (user.email) {
             try {
-                const { Resend } = await import('resend')
-                const resend = new Resend(process.env.RESEND_API_KEY)
+                // Dynamic import to ensure env vars are loaded if needed (though nextjs handles this)
+                const { sendVoucherEmail } = await import('@/lib/email')
 
-                // Get email templates from database
-                const templates = await getEmailTemplates()
-                const emailTemplate = templates.voucherClaim
                 const expiresAtFormatted = new Date(newVoucher.expires_at).toLocaleDateString('vi-VN')
+                const voucherLabel = voucherTier.label
 
-                // Replace placeholders
-                const html = emailTemplate.htmlTemplate
-                    .replace(/{{voucherLabel}}/g, voucherTier.label)
-                    .replace(/{{voucherCode}}/g, voucherCode)
-                    .replace(/{{expiresAt}}/g, expiresAtFormatted)
-
-                const subject = emailTemplate.subject.replace('{{voucherLabel}}', voucherTier.label)
-
-                await resend.emails.send({
-                    from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-                    to: user.email,
-                    subject,
-                    html
-                })
+                await sendVoucherEmail(user.email, voucherLabel, voucherCode, expiresAtFormatted)
                 console.log(`[VOUCHER EMAIL] Sent to ${user.email}`)
             } catch (emailError) {
                 console.error('[VOUCHER EMAIL] Failed to send:', emailError)
                 // Don't fail the request if email fails
             }
+        } else {
+            console.log(`[VOUCHER API] User has no email, skipping.`)
         }
 
         return NextResponse.json({

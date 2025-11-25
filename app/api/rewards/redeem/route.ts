@@ -78,8 +78,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate code for voucher type
-    const code = reward.type === 'voucher' ? generateVoucherCode() : null
+    // Generate code for voucher type OR gift type
+    // Now we generate code for both types as requested
+    const code = generateVoucherCode()
 
     // Create redemption record
     const { error: redemptionError } = await supabaseAdmin
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
         reward_id: reward.id,
         points_used: reward.points_required,
         code,
-        status: reward.type === 'voucher' ? 'completed' : 'pending'
+        status: reward.type === 'voucher' ? 'completed' : 'pending' // Gifts are pending until physically given? Or completed? Keeping pending for gifts seems right as they need to pick it up.
       })
 
     if (redemptionError) {
@@ -124,40 +125,27 @@ export async function POST(request: NextRequest) {
       console.error('Update stock error:', updateStockError)
     }
 
-    // Send email for voucher redemption
-    if (reward.type === 'voucher' && user.email) {
+    // Send email for voucher redemption OR gift redemption
+    if (user.email) {
       try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
+        const { sendVoucherEmail, sendGiftRedemptionEmail } = await import('@/lib/email')
 
-        const { getEmailTemplates } = await import('@/lib/emailTemplates')
-        const templates = await getEmailTemplates()
-        const emailTemplate = templates.voucherClaim
+        if (reward.type === 'voucher') {
+          // Calculate expiry date (30 days from now)
+          const expiryDate = new Date()
+          expiryDate.setDate(expiryDate.getDate() + 30)
+          const formattedExpiry = expiryDate.toLocaleDateString('vi-VN')
 
-        // Calculate expiry date (30 days from now)
-        const expiryDate = new Date()
-        expiryDate.setDate(expiryDate.getDate() + 30)
-        const formattedExpiry = expiryDate.toLocaleDateString('vi-VN')
+          await sendVoucherEmail(user.email, reward.name, code || '', formattedExpiry)
+          console.log(`[VOUCHER EMAIL] Sent to ${user.email}`)
+        } else {
+          // Gift redemption
+          await sendGiftRedemptionEmail(user.email, reward.name, code || '')
+          console.log(`[GIFT EMAIL] Sent to ${user.email}`)
+        }
 
-        const html = emailTemplate.htmlTemplate
-          .replace(/{{voucherLabel}}/g, reward.name)
-          .replace(/{{voucherCode}}/g, code || '')
-          .replace(/{{expiresAt}}/g, formattedExpiry)
-
-        const subject = emailTemplate.subject
-          .replace('{{voucherLabel}}', reward.name)
-
-        await resend.emails.send({
-          from: `${emailTemplate.fromName} <${emailTemplate.fromEmail}>`,
-          to: user.email,
-          subject,
-          html
-        })
-
-        console.log(`[VOUCHER EMAIL] Sent to ${user.email}`)
       } catch (emailError) {
-        console.error('Failed to send voucher email:', emailError)
-        // Don't fail the redemption if email fails
+        console.error(`[REWARD API] Failed to send email: ${emailError}`)
       }
     }
 

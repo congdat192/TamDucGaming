@@ -224,6 +224,24 @@
 
 ---
 
+#### [2025-11-25] [BUG] Voucher emails sent but not logged
+**Description:** User received voucher emails but no logs appeared in `email_logs` table.
+
+**Root cause:**
+- API routes (`voucher/redeem`, `rewards/redeem`) imported `Resend` SDK directly.
+- Bypassed `lib/emailService.ts` which handles logging.
+
+**Prevention:**
+1. **ALWAYS use centralized email service**
+2. Never import `resend` or `nodemailer` in API routes (except for testing).
+
+**Rule:**
+- ❌ Never use `resend` or `nodemailer` directly in API routes
+- ✅ Always use `sendVoucherEmail`, `sendOtpEmail`, etc. from `lib/email.ts`
+- ✅ Always use `lib/emailService.ts` if creating new email types
+
+---
+
 ## 7. Instructions For Claude
 
 ### Before Every Task:
@@ -252,10 +270,11 @@
 4. JWT tokens must be in HTTP-only cookies
 
 ### Email Handling:
-1. Always use `lib/emailService.ts`
-2. Don't worry about fallback logic (handled automatically)
-3. Pass `emailType` for proper logging
-4. Include `userId` when available for tracking
+1. **ALWAYS** use `lib/email.ts` or `lib/emailService.ts`
+2. **NEVER** use `resend` or `nodemailer` directly in API routes
+3. Don't worry about fallback logic (handled automatically)
+4. Pass `emailType` for proper logging
+5. Include `userId` when available for tracking
 
 ### Error Handling:
 1. Never silence errors with empty catch blocks

@@ -144,3 +144,41 @@ export async function sendVoucherEmail(
     return false
   }
 }
+
+/**
+ * Send gift redemption email
+ */
+export async function sendGiftRedemptionEmail(
+  email: string,
+  giftName: string,
+  giftCode: string
+) {
+  try {
+    const templates = await getEmailTemplates()
+    const emailTemplate = templates.giftRedemption
+
+    const variables = {
+      giftName,
+      giftCode,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://game.matkinhtamduc.com',
+    }
+
+    const subject = replaceTemplateVariables(emailTemplate.subject, variables)
+    const html = replaceTemplateVariables(emailTemplate.htmlTemplate, variables)
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      from: emailTemplate.fromEmail,
+      fromName: emailTemplate.fromName,
+      emailType: 'gift_redemption',
+      metadata: { variables }
+    })
+
+    return result.success
+  } catch (error) {
+    console.error('Exception sending gift redemption email:', error)
+    return false
+  }
+}

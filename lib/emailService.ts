@@ -56,7 +56,7 @@ async function logEmail(params: {
   metadata?: Record<string, unknown>
 }): Promise<void> {
   try {
-    await supabaseAdmin.from('email_logs').insert({
+    const { error } = await supabaseAdmin.from('email_logs').insert({
       to_email: params.toEmail,
       subject: params.subject,
       email_type: params.emailType,
@@ -67,9 +67,15 @@ async function logEmail(params: {
       user_id: params.userId || null,
       metadata: params.metadata || {}
     })
+
+    if (error) {
+      console.error('[EMAIL LOG] Supabase insert error:', JSON.stringify(error, null, 2))
+    } else {
+      console.log('[EMAIL LOG] Successfully logged email to:', params.toEmail)
+    }
   } catch (error) {
     // Don't fail email sending if logging fails
-    console.error('[EMAIL LOG] Failed to log email:', error)
+    console.error('[EMAIL LOG] Failed to log email (Exception):', error)
   }
 }
 

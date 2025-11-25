@@ -25,6 +25,9 @@ interface Campaign {
 
 type Period = 'week' | 'month' | 'all'
 
+// Force dynamic rendering - no cache
+export const dynamic = 'force-dynamic'
+
 export default function LeaderboardPage() {
   const router = useRouter()
 

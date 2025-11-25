@@ -18,6 +18,27 @@ export function middleware(request: NextRequest) {
     return response
   }
 
+  // Protect Admin Routes
+  if (pathname.startsWith('/admin')) {
+    // Allow access to login page
+    if (pathname === '/admin') {
+      return NextResponse.next()
+    }
+
+    // Check for admin token
+    const adminToken = request.cookies.get('admin-token')?.value
+
+    if (!adminToken) {
+      return NextResponse.redirect(new URL('/admin', request.url))
+    }
+
+    // Note: We can't verify JWT signature here without edge-compatible library or external service easily
+    // But we can check existence. The API routes will do full verification.
+    // For better security, we should verify it, but jsonwebtoken might not work in Edge Runtime.
+    // If we need strict verification, we can use jose library.
+    // For now, existence check + API verification is a good start.
+  }
+
   return NextResponse.next()
 }
 

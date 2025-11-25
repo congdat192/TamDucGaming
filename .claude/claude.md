@@ -127,7 +127,7 @@
 - **RLS:** Respect Row Level Security policies
 
 ### Authentication
-- JWT tokens stored in HTTP-only cookies (`auth-token`)
+- JWT tokens stored in HTTP-only cookies (`auth-token` for users, `admin-token` for admins)
 - Verify tokens using `lib/auth.ts` `verifyToken()`
 - Never send tokens in response body
 - OTP codes expire after set time
@@ -248,7 +248,7 @@
 ### Authentication Handling:
 1. Always use custom JWT auth (`lib/auth.ts`)
 2. Never suggest Supabase Auth as alternative
-3. OTP verification is the only login method
+3. OTP verification is the only login method (for both Users and Admins)
 4. JWT tokens must be in HTTP-only cookies
 
 ### Email Handling:

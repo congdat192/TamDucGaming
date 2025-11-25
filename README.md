@@ -63,16 +63,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # App
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-JWT_SECRET=your-secret-key-change-in-production
-
-# Email (Resend - primary)
-RESEND_API_KEY=your-resend-api-key
-
-# Email (Gmail - fallback, optional)
-GMAIL_USER=your-gmail@gmail.com
-GMAIL_APP_PASSWORD=your-app-password
-
 # Mock OTP (set false for real OTP)
 MOCK_OTP_ENABLED=true
 ```

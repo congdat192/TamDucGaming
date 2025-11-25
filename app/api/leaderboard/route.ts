@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { maskPhone, maskEmail } from '@/lib/auth'
 
+// Force no caching at all levels
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
@@ -227,12 +231,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leaderboard,
       period,
-      campaigns: campaigns || []
+      campaigns: campaigns || [],
+      timestamp: Date.now() // Add timestamp to force unique response
     }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'Surrogate-Control': 'no-store',
+        'CDN-Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store',
+        'X-Vercel-Cache': 'MISS',
       }
     })
 

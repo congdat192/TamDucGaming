@@ -47,7 +47,7 @@ export default function LeaderboardAllPage() {
         if (!isBackground) setLoading(true)
         try {
             // Fetch more items for the "View All" page, e.g., top 100
-            const res = await fetch(`/api/leaderboard?period=${period}&limit=100`, { cache: 'no-store' })
+            const res = await fetch(`/api/leaderboard?period=${period}&limit=100&t=${Date.now()}`, { cache: 'no-store' })
             const data = await res.json()
             setLeaderboard(data.leaderboard || [])
             if (!isBackground) setCurrentPage(1)

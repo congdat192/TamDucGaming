@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getVietnamDate } from '@/lib/date'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -79,6 +81,12 @@ export async function GET(request: NextRequest) {
         total_score: user.total_score,
         total_referrals: totalReferrals || 0,
         total_games_played: totalGamesPlayed || 0
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       }
     })
 

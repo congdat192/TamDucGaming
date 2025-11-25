@@ -74,7 +74,7 @@ export default function LeaderboardPage() {
   const fetchLeaderboard = async (isBackground = false) => {
     if (!isBackground) setLoading(true)
     try {
-      let url = `/api/leaderboard?period=${period}&limit=${maxItems}`
+      let url = `/api/leaderboard?period=${period}&limit=${maxItems}&t=${Date.now()}`
 
       const res = await fetch(url, { cache: 'no-store' })
       const data = await res.json()

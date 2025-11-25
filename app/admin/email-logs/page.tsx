@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { replaceTemplateVariables } from '@/lib/emailService'
 
 interface EmailLog {
   id: string
@@ -26,11 +27,123 @@ interface Stats {
   }
 }
 
+interface EmailTemplate {
+  subject: string
+  htmlTemplate: string
+  fromName: string
+  fromEmail: string
+}
+
+// Modal to show email details
+function EmailDetailModal({ log, onClose }: { log: EmailLog; onClose: () => void }) {
+  const [content, setContent] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const reconstructEmail = async () => {
+      setLoading(true)
+      try {
+        // 1. Get template based on email_type
+        // In a real app, we might fetch this from an API if templates are dynamic
+        // For now, we'll fetch from a new API endpoint or just use hardcoded templates if they were client-side
+        // But templates are in DB/server-side. Let's fetch from an API.
+        // We'll create a simple server action or API route to get template content?
+        // Or simpler: The user wants to see the content.
+        // If we stored variables in metadata, we can try to reconstruct it.
+
+        // Let's fetch the template via a new API or reuse existing structure.
+        // Since we don't have a direct "get template" API for frontend yet, 
+        // we will try to fetch it.
+
+        const res = await fetch(`/api/admin/email-templates?type=${log.email_type}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.template) {
+            const template = data.template as EmailTemplate
+            const variables = (log.metadata?.variables as Record<string, string | number>) || {}
+
+            // Reconstruct HTML
+            let html = template.htmlTemplate
+            for (const [key, value] of Object.entries(variables)) {
+              const regex = new RegExp(`{{${key}}}`, 'g')
+              html = html.replace(regex, String(value))
+            }
+            setContent(html)
+          } else {
+            setContent('<div class="p-4 text-red-400">Không tìm thấy template cho loại email này.</div>')
+          }
+        } else {
+          setContent('<div class="p-4 text-red-400">Lỗi khi tải template.</div>')
+        }
+
+      } catch (error) {
+        console.error('Error reconstructing email:', error)
+        setContent('<div class="p-4 text-red-400">Đã xảy ra lỗi khi tái tạo nội dung email.</div>')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (log) {
+      reconstructEmail()
+    }
+  }, [log])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-white/10 shadow-2xl">
+        {/* Header */}
+        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-gray-800/50 rounded-t-2xl">
+          <div>
+            <h3 className="text-xl font-bold text-white mb-1">{log.subject}</h3>
+            <div className="flex gap-2 text-sm text-gray-400">
+              <span>To: <span className="text-white">{log.to_email}</span></span>
+              <span>•</span>
+              <span>{new Date(log.created_at).toLocaleString('vi-VN')}</span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto bg-white p-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-40 text-gray-500">
+              Đang tải nội dung...
+            </div>
+          ) : (
+            <div
+              className="prose max-w-none text-black"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-white/10 bg-gray-800/50 rounded-b-2xl flex justify-between items-center text-xs text-gray-500">
+          <div>
+            ID: {log.id} | Provider: {log.provider}
+          </div>
+          <div>
+            Metadata: {JSON.stringify(log.metadata)}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminEmailLogsPage() {
   const [logs, setLogs] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<Stats>({ total: 0, success: 0, failed: 0, byProvider: { resend: 0, gmail: 0 } })
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  const [selectedLog, setSelectedLog] = useState<EmailLog | null>(null)
 
   // Filters
   const [filterType, setFilterType] = useState('')
@@ -230,6 +343,7 @@ export default function AdminEmailLogsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Tiêu đề</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Provider</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Trạng thái</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -268,6 +382,14 @@ export default function AdminEmailLogsPage() {
                             {log.error_message}
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => setSelectedLog(log)}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          Xem chi tiết
+                        </button>
                       </td>
                     </tr>
                   )
@@ -313,6 +435,14 @@ export default function AdminEmailLogsPage() {
           <li>• Nếu chưa thấy logs, hãy chạy SQL migration để tạo bảng</li>
         </ul>
       </div>
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <EmailDetailModal
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+        />
+      )}
     </div>
   )
 }

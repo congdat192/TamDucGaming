@@ -27,7 +27,8 @@ export async function sendReferralBonusEmail(email: string, bonusPlays: number, 
       html,
       from: emailTemplate.fromEmail,
       fromName: emailTemplate.fromName,
-      emailType: 'referral_bonus'
+      emailType: 'referral_bonus',
+      metadata: { variables }
     })
 
     return result.success
@@ -55,7 +56,8 @@ export async function sendOtpEmail(email: string, otp: string) {
       html,
       from: emailTemplate.fromEmail,
       fromName: emailTemplate.fromName,
-      emailType: 'otp'
+      emailType: 'otp',
+      metadata: { variables }
     })
 
     return result.success
@@ -92,7 +94,8 @@ export async function sendReferralCompletionEmail(
       html,
       from: emailTemplate.fromEmail,
       fromName: emailTemplate.fromName,
-      emailType: 'referral_completion'
+      emailType: 'referral_completion',
+      metadata: { variables }
     })
 
     return result.success
@@ -131,7 +134,8 @@ export async function sendVoucherEmail(
       html,
       from: emailTemplate.fromEmail,
       fromName: emailTemplate.fromName,
-      emailType: 'voucher_claim'
+      emailType: 'voucher_claim',
+      metadata: { variables }
     })
 
     return result.success

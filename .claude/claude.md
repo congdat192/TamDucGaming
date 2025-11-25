@@ -155,7 +155,30 @@
 ## 6. Bug-Prevention Section
 
 ### Bug Prevent Log
-(Empty - to be filled by user as issues are discovered)
+
+#### [2025-11-25] [BUG] Leaderboard showing stale data on production
+**Description:** Production UI showed 81 points while API returned 300 points. Localhost worked correctly.
+
+**Root cause:**
+- Vercel CDN cached old JavaScript bundles
+- Client Component ('use client') with client-side fetch still has HTML/JS cached
+- Setting `cache: 'no-store'` in fetch() only prevents API cache, NOT HTML/JS cache
+
+**Prevention:**
+1. Always purge Vercel cache after important deployments
+   - Vercel Dashboard → Settings → Data Cache → Purge Everything
+2. Test in Incognito mode to verify no cache issues
+3. Check both API response AND UI display match
+
+**Solution implemented:**
+- Added `export const dynamic = 'force-dynamic'` to pages
+- Added cache headers in next.config.js, middleware.ts, and vercel.json
+- Must manually purge cache after deploy for immediate effect
+
+**Rule:**
+- ❌ Never assume client-side fetch with no-cache means no caching at all
+- ✅ Always purge Vercel cache after deploy if data display is critical
+- ✅ Use Server Components for data that must be fresh on every request
 
 **Format for adding entries:**
 ```

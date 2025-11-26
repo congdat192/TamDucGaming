@@ -35,8 +35,8 @@ export const DEFAULT_CONFIG: GameConfig = {
   maxPlaysPerDay: 1,
   bonusPlaysForPhone: 3,
   bonusPlaysForReferral: 5,
-  testEmails: ['test@test.com', 'admin@matkinhtamduc.com', 'congdat192@gmail.com'],
-  testPhones: ['0909999999', '0123456789'],
+  testEmails: [],
+  testPhones: [],
   gameMechanics: {
     gravity: 0.5,
     jumpForce: -10,

@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { getUnreadCount } from '@/lib/notifications'
 
+export const dynamic = 'force-dynamic'
+
 // GET - Đếm số notifications chưa đọc
 export async function GET() {
   try {

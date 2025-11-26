@@ -4,6 +4,8 @@ import { verifyToken, generateVoucherCode } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()

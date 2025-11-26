@@ -6,6 +6,8 @@ import { verifyToken, generateGameToken } from '@/lib/auth'
 import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 import { getVietnamDate } from '@/lib/date'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()

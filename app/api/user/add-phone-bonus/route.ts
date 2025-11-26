@@ -7,6 +7,8 @@ import { getGameConfig } from '@/lib/gameConfig'
 import { notifyReferralBonus } from '@/lib/notifications'
 import { sendReferralBonusEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()

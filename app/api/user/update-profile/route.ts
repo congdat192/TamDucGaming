@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()

@@ -6,6 +6,8 @@ import { cookies } from 'next/headers'
 import { getGameConfig } from '@/lib/gameConfig'
 import { notifyWelcome, notifyDailyBonus } from '@/lib/notifications'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { phone, email, otp, referralCode } = await request.json()

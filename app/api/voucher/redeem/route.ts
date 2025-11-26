@@ -7,6 +7,8 @@ import { VOUCHER_TIERS } from '@/lib/voucher'
 import { notifyVoucherClaimed } from '@/lib/notifications'
 import { getEmailTemplates } from '@/lib/emailTemplates'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
     try {
         const cookieStore = await cookies()

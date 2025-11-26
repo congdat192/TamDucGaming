@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
 
+export const dynamic = 'force-dynamic'
+
 // Verify admin token from HTTP-only cookie
 async function verifyAdmin(): Promise<boolean> {
   try {

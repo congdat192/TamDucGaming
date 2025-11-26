@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { getUserNotifications } from '@/lib/notifications'
 
+export const dynamic = 'force-dynamic'
+
 // GET - Lấy danh sách notifications của user
 export async function GET(request: NextRequest) {
   try {

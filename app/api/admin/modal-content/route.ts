@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
 
+export const dynamic = 'force-dynamic'
+
 // Default modal content
 const DEFAULT_CONTENT = {
   addPhoneModal: {

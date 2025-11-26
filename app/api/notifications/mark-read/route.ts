@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { markAsRead, markAllAsRead } from '@/lib/notifications'
 
+export const dynamic = 'force-dynamic'
+
 // POST - Đánh dấu đã đọc
 export async function POST(request: NextRequest) {
   try {

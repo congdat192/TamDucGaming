@@ -9,6 +9,8 @@ import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications
 import { sendReferralCompletionEmail } from '@/lib/email'
 import { rateLimit } from '@/lib/ratelimit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()

@@ -6,6 +6,8 @@ import { createBroadcastNotification, createNotification } from '@/lib/notificat
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+export const dynamic = 'force-dynamic'
+
 // Verify admin token
 function verifyAdminToken(token: string) {
   try {

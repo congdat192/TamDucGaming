@@ -65,6 +65,7 @@ export interface Database {
       game_sessions: {
         Row: {
           id: string
+          session_id: string
           user_id: string
           score: number
           played_at: string
@@ -72,6 +73,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          session_id: string
           user_id: string
           score: number
           played_at?: string
@@ -79,6 +81,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          session_id?: string
           user_id?: string
           score?: number
           played_at?: string

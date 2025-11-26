@@ -44,7 +44,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Test account - unlimited plays
+    const isTest = isTestAccount(config, user.email, user.phone)
 
+    // Hard limit: Maximum games per day (prevent spam/hack)
+    const MAX_GAMES_PER_DAY = 50
+    if (!isTest) {
+      const today = getVietnamDate()
+      const { count, error: countError } = await supabase
+        .from('game_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('played_at', `${today}T00:00:00+07:00`)
+
+      if (countError) {
+        console.error('[GAME START] Error counting games:', countError)
+      }
+
+      if (count && count >= MAX_GAMES_PER_DAY) {
+        console.warn(`[HARD LIMIT] User ${user.id} exceeded max games per day: ${count}`)
+        return NextResponse.json(
+          { error: `Đã đạt giới hạn tối đa ${MAX_GAMES_PER_DAY} game trong ngày` },
+          { status: 400 }
+        )
+      }
+    }
 
     // Check if today is a new day (Vietnam Time)
     const today = getVietnamDate()
@@ -65,7 +88,6 @@ export async function POST(request: NextRequest) {
     // Check if user has plays remaining (using config from DB)
     const freePlaysRemaining = config.maxPlaysPerDay - playsToday
     const totalPlaysRemaining = freePlaysRemaining + bonusPlays
-    const isTest = isTestAccount(config, user.email, user.phone)
 
     if (!isTest && totalPlaysRemaining <= 0) {
       return NextResponse.json(

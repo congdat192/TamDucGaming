@@ -7,6 +7,7 @@ import { getGameConfig } from '@/lib/gameConfig'
 import { VOUCHER_TIERS } from '@/lib/voucher'
 import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
 import { sendReferralCompletionEmail } from '@/lib/email'
+import { rateLimit } from '@/lib/ratelimit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Token không hợp lệ' },
         { status: 401 }
+      )
+    }
+
+    // Rate limiting: 5 requests per minute per user
+    const rateLimitResult = rateLimit(`game-end:${payload.userId}`, {
+      maxRequests: 5,
+      windowMs: 60 * 1000 // 1 minute
+    })
+
+    if (!rateLimitResult.success) {
+      console.warn(`[RATE LIMIT] User ${payload.userId} exceeded rate limit`)
+      return NextResponse.json(
+        { error: 'Quá nhiều request, vui lòng chờ 1 phút' },
+        { status: 429 }
       )
     }
 
@@ -65,11 +80,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Anti-Cheat: Check duration vs score
+    // Anti-Cheat: Improved duration vs score validation
     const currentTimestamp = Date.now()
     const durationSeconds = (currentTimestamp - gamePayload.startTime) / 1000
-    const maxPossibleScore = Math.ceil(durationSeconds * 5) + 10 // 5 points/sec + 10 buffer
 
+    // Check 1: Minimum game duration (prevent instant submission)
+    if (durationSeconds < 5) {
+      console.warn(`[ANTI-CHEAT] Game too short: ${durationSeconds}s (User: ${payload.userId})`)
+      return NextResponse.json(
+        { error: 'Game quá ngắn (nghi vấn hack)' },
+        { status: 400 }
+      )
+    }
+
+    // Check 2: Maximum game duration (token expires after 1h)
+    if (durationSeconds > 3600) {
+      console.warn(`[ANTI-CHEAT] Game too long: ${durationSeconds}s (User: ${payload.userId})`)
+      return NextResponse.json(
+        { error: 'Game quá lâu, vui lòng chơi lại' },
+        { status: 400 }
+      )
+    }
+
+    // Check 3: Score vs duration (stricter: 2 points/sec max)
+    const maxPossibleScore = Math.floor(durationSeconds * 2)
     console.log(`[GAME END] Duration: ${durationSeconds}s, Score: ${score}, Max: ${maxPossibleScore}`)
 
     if (score > maxPossibleScore) {
@@ -98,6 +132,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Anti-Cheat: Check if session already submitted (prevent replay attack)
+    const { data: existingSession } = await supabaseAdmin
+      .from('game_sessions')
+      .select('id')
+      .eq('session_id', gamePayload.sessionId)
+      .single()
+
+    if (existingSession) {
+      console.warn(`[ANTI-CHEAT] Session already submitted: ${gamePayload.sessionId} (User: ${payload.userId})`)
+      return NextResponse.json(
+        { error: 'Game session đã được submit rồi' },
+        { status: 400 }
+      )
+    }
+
     // Get active campaign
     const now = new Date().toISOString()
     const { data: campaign, error: campaignError } = await supabase
@@ -114,10 +163,11 @@ export async function POST(request: NextRequest) {
       console.error('[GAME END] Error fetching campaign:', campaignError)
     }
 
-    // Save game session
+    // Save game session with session_id
     const { error: sessionError } = await supabaseAdmin
       .from('game_sessions')
       .insert({
+        session_id: gamePayload.sessionId,
         user_id: user.id,
         score,
         campaign_id: activeCampaign?.id || null

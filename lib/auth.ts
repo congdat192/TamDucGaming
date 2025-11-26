@@ -2,7 +2,16 @@ import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { supabase } from './supabase'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
+// Validate JWT_SECRET exists in production
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production')
+  }
+  console.warn('⚠️  JWT_SECRET not set, using default (ONLY OK IN DEVELOPMENT)')
+}
+
+const SECRET = JWT_SECRET || 'santa-jump-secret-dev-only'
 
 export interface JWTPayload {
   userId: string
@@ -17,24 +26,24 @@ export interface GameTokenPayload {
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, SECRET, { expiresIn: '7d' })
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload
+    return jwt.verify(token, SECRET) as JWTPayload
   } catch {
     return null
   }
 }
 
 export function generateGameToken(payload: GameTokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' })
+  return jwt.sign(payload, SECRET, { expiresIn: '1h' })
 }
 
 export function verifyGameToken(token: string): GameTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as GameTokenPayload
+    return jwt.verify(token, SECRET) as GameTokenPayload
   } catch {
     return null
   }

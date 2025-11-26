@@ -30,10 +30,10 @@ export interface GameConfig {
   }
 }
 
-// Default config values
+// Default config values (sync with database config)
 export const DEFAULT_CONFIG: GameConfig = {
-  maxPlaysPerDay: 1,
-  bonusPlaysForPhone: 3,
+  maxPlaysPerDay: 3,
+  bonusPlaysForPhone: 4,
   bonusPlaysForReferral: 5,
   testEmails: [],
   testPhones: [],

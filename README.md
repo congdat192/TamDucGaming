@@ -126,13 +126,30 @@ Server-side score validation to prevent cheating:
 ### Flow
 1. **Game Start:** Server creates session with unique `game_token`
 2. **Game End:** Client sends `{ gameToken, score }`
-3. **Validation:** Server validates based on duration, config, and caps
+3. **Validation:** Server validates using 7-layer checks
 4. **Storage:** Both `client_score` (raw) and `validated_score` (verified) saved
 
 ### Limits
 - **Max Duration:** 5 minutes per game
-- **Per-Game Cap:** 200 points max
+- **Per-Game Cap:** 300 points max
 - **Daily Cap:** 500 points per user per day
+- **Min time per point:** 1.2 seconds
+- **Buffer:** 30% for lag/skill
+
+### Security Features
+- **Rate limit** `/api/game/start`: 10 req/min per user
+- **Rate limit** `/api/game/end`: 5 req/min per user
+- **Open sessions limit:** Max 3 concurrent sessions per user
+- **Race condition protection:** Atomic UPDATE with status='processing'
+
+### Validation Logic (7 layers)
+1. Duration too short (< 3s) → score = 0
+2. Duration too long (> 300s) → warning
+3. Score > 0 but < 3s → score = 0
+4. Sanity check: each point needs ≥ 1.2s
+5. Config-based max using GAME_CONFIG + gameMechanics
+6. Daily cap: 500 pts/day
+7. Negative score → score = 0
 
 ### Admin Monitoring
 - URL: `/admin/suspicious`

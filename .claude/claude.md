@@ -414,20 +414,48 @@ Server-side score validation system to prevent cheating in game.
 
 ### Constants (in `lib/game/validateScore.ts`)
 ```typescript
-MAX_GAME_DURATION = 300    // 5 minutes max
-MIN_GAME_DURATION = 3      // 3 seconds min
-BUFFER_MULTIPLIER = 1.2    // +20% buffer for lag
-HARD_CAP_PER_GAME = 200    // max points per game
-DAILY_SCORE_CAP = 500      // max points per day
+MAX_GAME_DURATION = 300           // 5 minutes max
+MIN_GAME_DURATION = 3             // 3 seconds min
+BUFFER_MULTIPLIER = 1.3           // +30% buffer for lag/skill
+HARD_CAP_PER_GAME = 300           // max points per game
+DAILY_SCORE_CAP = 500             // max points per day
+MIN_SECONDS_FOR_NONZERO_SCORE = 3 // need 3s to score
+MIN_SECONDS_PER_POINT = 1.2       // each point needs 1.2s min
+```
+
+### Score Validation Logic (7 layers)
+1. **Duration too short** (< 3s) → score = 0
+2. **Duration too long** (> 300s) → warning only
+3. **Score > 0 but < 3s** → score = 0
+4. **Sanity check**: each point needs ≥ 1.2s
+5. **Config-based max**: uses GAME_CONFIG (WIDTH, SANTA_X) + gameMechanics
+6. **Daily cap**: 500 pts/day
+7. **Negative score** → score = 0
+
+### Config-Based Max Score Algorithm
+```typescript
+// 1. Time for first point (obstacle must travel to Santa)
+tFirstPoint = (WIDTH - SANTA_X - obstacleWidth) / (obstacleSpeed * 60)
+
+// 2. Points after first = remainingTime / avgSpawnInterval
+// 3. theoreticalMax = 1 + possiblePointsAfterFirst
+// 4. withBuffer = theoreticalMax * 1.3 (30%)
+// 5. return min(withBuffer, 300)
 ```
 
 ### Database Columns (game_sessions)
 - `game_token` - Server-generated UUID
-- `status` - 'started' | 'finished' | 'invalid'
+- `status` - 'started' | 'processing' | 'finished' | 'invalid'
 - `client_score` - What client sent (for logging)
 - `validated_score` - What server validated (for leaderboard)
 - `suspicion_reason` - Why flagged (if suspicious)
 - `config_snapshot` - Game config at start time
+
+### API Security Features
+- **Rate limit** `/api/game/start`: 10 req/min per user
+- **Rate limit** `/api/game/end`: 5 req/min per user
+- **Open sessions limit**: Max 3 sessions with status='started' per user
+- **Race condition fix**: Atomic UPDATE with status='processing' in /game/end
 
 ### Admin Panel
 - URL: `/admin/suspicious`
@@ -435,5 +463,5 @@ DAILY_SCORE_CAP = 500      // max points per day
 
 ---
 
-**Last Updated:** 2025-01-27 (Added anti-cheat system, TypeScript Supabase select bug)
+**Last Updated:** 2025-01-27 (Enhanced anti-cheat with config-based validation, rate limits, race condition fix)
 **Verified Against:** Actual codebase analysis, not assumptions

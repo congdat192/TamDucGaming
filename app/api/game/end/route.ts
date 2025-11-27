@@ -73,32 +73,62 @@ export async function POST(request: NextRequest) {
 
     const clientScore = Math.max(0, Math.floor(score))
 
-    // Find game session by token
-    const { data: session, error: sessionError } = await supabaseAdmin
+    // Find game session by token AND atomically claim it (prevent race condition)
+    // Using UPDATE with WHERE status='started' ensures only ONE request can claim the session
+    const now = new Date()
+    const { data: claimedSession, error: claimError } = await supabaseAdmin
       .from('game_sessions')
-      .select('*')
+      .update({
+        status: 'processing' // Temporary status to prevent race condition
+      })
       .eq('game_token', gameToken)
+      .eq('status', 'started')
+      .select('*')
       .single()
 
-    if (sessionError || !session) {
-      console.error('[GAME END] Session not found:', gameToken)
+    // If no row updated, either session doesn't exist, already processed, or wrong status
+    if (claimError || !claimedSession) {
+      // Check if session exists but already processed
+      const { data: existingSession } = await supabaseAdmin
+        .from('game_sessions')
+        .select('status, user_id')
+        .eq('game_token', gameToken)
+        .single()
+
+      if (!existingSession) {
+        console.error('[GAME END] Session not found:', gameToken)
+        return NextResponse.json(
+          { error: 'Không tìm thấy phiên chơi' },
+          { status: 404 }
+        )
+      }
+
+      if (existingSession.status !== 'started') {
+        console.warn(`[ANTI-CHEAT] Session already ${existingSession.status}: ${gameToken} (User: ${payload.userId})`)
+        return NextResponse.json(
+          { error: 'Phiên chơi đã kết thúc hoặc không hợp lệ' },
+          { status: 400 }
+        )
+      }
+
+      // Unexpected error
+      console.error('[GAME END] Failed to claim session:', claimError)
       return NextResponse.json(
-        { error: 'Không tìm thấy phiên chơi' },
-        { status: 404 }
+        { error: 'Không thể xử lý phiên chơi' },
+        { status: 500 }
       )
     }
 
-    // Check session status - prevent reuse
-    if (session.status !== 'started') {
-      console.warn(`[ANTI-CHEAT] Session already ${session.status}: ${gameToken} (User: ${payload.userId})`)
-      return NextResponse.json(
-        { error: 'Phiên chơi đã kết thúc hoặc không hợp lệ' },
-        { status: 400 }
-      )
-    }
+    const session = claimedSession
 
     // Verify user owns this session
     if (session.user_id !== payload.userId) {
+      // Revert the status change since this user doesn't own it
+      await supabaseAdmin
+        .from('game_sessions')
+        .update({ status: 'started' })
+        .eq('id', session.id)
+
       console.error(`[ANTI-CHEAT] Session user mismatch: session=${session.user_id}, auth=${payload.userId}`)
       return NextResponse.json(
         { error: 'Phiên chơi không thuộc về bạn' },
@@ -106,8 +136,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate server-side duration
-    const now = new Date()
+    // Calculate server-side duration (using 'now' declared above)
     const startTime = new Date(session.start_time)
     const durationSeconds = Math.max(1, (now.getTime() - startTime.getTime()) / 1000)
 

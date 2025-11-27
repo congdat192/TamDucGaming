@@ -3,6 +3,8 @@
  * Mục tiêu: Không tin dữ liệu từ client, tính max score dựa trên game config
  */
 
+import { GAME_CONFIG } from '@/lib/game/constants'
+
 export interface GameConfigSnapshot {
   gravity: number
   jumpForce: number
@@ -29,74 +31,99 @@ export interface ValidationResult {
 // Constants
 const MAX_GAME_DURATION = 300 // 5 phút - sau đó game quá dài
 const MIN_GAME_DURATION = 3 // 3 giây - dưới mức này là hack
-const BUFFER_MULTIPLIER = 1.2 // Cho phép 20% buffer cho lag/luck
-const HARD_CAP_PER_GAME = 200 // Tối đa điểm/lượt
+const BUFFER_MULTIPLIER = 1.3 // Cho phép 30% buffer cho lag/luck/skill
+const HARD_CAP_PER_GAME = 300 // Tối đa điểm/lượt (tăng từ 200 lên 300)
 const DAILY_SCORE_CAP = 500 // Tối đa điểm/ngày
+
+// Sanity check constants
+const MIN_SECONDS_FOR_NONZERO_SCORE = 3 // Cần ít nhất 3 giây để có điểm
+const MIN_SECONDS_PER_POINT = 1.2 // Trung bình mỗi điểm cần ít nhất 1.2 giây
 
 /**
  * Tính số điểm tối đa có thể đạt được dựa trên thời gian chơi và config
+ * Sử dụng GAME_CONFIG để tính chính xác thời gian obstacle di chuyển
  *
  * Logic:
- * - Mỗi obstacle qua = 1 điểm
- * - spawnInterval giảm dần theo thời gian -> nhiều obstacle hơn
- * - Tính average spawn rate dựa trên config
+ * 1. Tính thời gian để obstacle đầu tiên qua Santa (tFirstPoint)
+ * 2. Tính số obstacle có thể spawn dựa trên spawn interval
+ * 3. Thêm buffer 30% cho player giỏi
+ * 4. Áp dụng hard cap
  */
 export function computeMaxScoreAllowed(
   durationSeconds: number,
   config: GameConfigSnapshot
 ): number {
-  // 1. Giới hạn thời gian hợp lệ
+  // 0. Clamp duration để tránh giá trị cực đoan
   const safeDuration = Math.min(Math.max(durationSeconds, 0), MAX_GAME_DURATION)
 
   if (safeDuration < MIN_GAME_DURATION) {
     return 0 // Game quá ngắn
   }
 
-  // 2. Tính spawn rate trung bình
-  // spawnInterval giảm dần từ config.spawnInterval đến config.minSpawnInterval
-  const initialSpawnMs = config.spawnInterval || 2500
-  const minSpawnMs = config.minSpawnInterval || 1200
-  const spawnDecreaseMs = config.spawnIntervalDecrease || 100
-  const speedIncreaseIntervalMs = config.speedIncrementInterval || 5000
+  // 1. Tính thời gian để obstacle đầu tiên có thể cho điểm
+  // Pipe bắt đầu từ cạnh phải và phải di chuyển qua Santa
+  const obstacleWidth = config.obstacleWidth || GAME_CONFIG.OBSTACLE_WIDTH
+  const obstacleSpeed = config.obstacleSpeed || GAME_CONFIG.OBSTACLE_SPEED
 
-  // Số lần tăng tốc trong game
-  const durationMs = safeDuration * 1000
-  const numSpeedIncrements = Math.floor(durationMs / speedIncreaseIntervalMs)
+  // Khoảng cách obstacle phải di chuyển để Santa vượt qua
+  const distanceToFirstPipe =
+    GAME_CONFIG.WIDTH -
+    GAME_CONFIG.SANTA_X -
+    obstacleWidth
 
-  // Spawn interval giảm sau mỗi lần tăng tốc
-  // Tính average spawn interval trong suốt game
-  let totalSpawnIntervalMs = 0
-  let currentSpawnInterval = initialSpawnMs
+  // Thời gian để có điểm đầu tiên (giây)
+  // obstacleSpeed là pixels/frame, assume 60fps -> pixels/second = speed * 60
+  const pixelsPerSecond = obstacleSpeed * 60
+  const tFirstPoint = distanceToFirstPipe / pixelsPerSecond
 
-  for (let i = 0; i <= numSpeedIncrements; i++) {
-    const intervalDuration = i < numSpeedIncrements
-      ? speedIncreaseIntervalMs
-      : (durationMs % speedIncreaseIntervalMs)
-
-    totalSpawnIntervalMs += intervalDuration
-
-    // Giảm spawn interval cho lần tăng tốc tiếp theo
-    currentSpawnInterval = Math.max(
-      currentSpawnInterval - spawnDecreaseMs,
-      minSpawnMs
-    )
+  if (safeDuration <= tFirstPoint) {
+    // Không đủ thời gian để có điểm hợp lệ
+    return 0
   }
 
-  // Average spawn interval (weighted)
-  const avgSpawnMs = initialSpawnMs // Simplify: use initial as baseline
+  // 2. Thời gian giữa các điểm (spawn interval)
+  const initialSpawnMs = config.spawnInterval || GAME_CONFIG.OBSTACLE_SPAWN_INTERVAL
+  const minSpawnMs = config.minSpawnInterval || GAME_CONFIG.MIN_SPAWN_INTERVAL
 
-  // 3. Ước tính số obstacle có thể spawn
-  // Cách đơn giản hơn: dùng average của initial và min spawn interval
-  const avgSpawnInterval = (initialSpawnMs + minSpawnMs) / 2
-  const estimatedObstacles = (durationMs / avgSpawnInterval)
+  // Dùng effective interval (trung bình giữa initial và min)
+  const effectiveIntervalMs = (initialSpawnMs + minSpawnMs) / 2
+  const intervalSec = Math.max(effectiveIntervalMs / 1000, 0.4) // Tránh interval quá nhỏ
 
-  // 4. Điểm lý thuyết tối đa (mỗi obstacle = 1 điểm)
-  const theoreticalMax = Math.floor(estimatedObstacles)
+  // 3. Tính số điểm lý thuyết
+  const remainingTime = safeDuration - tFirstPoint
+  const possiblePointsAfterFirst = remainingTime > 0 ? remainingTime / intervalSec : 0
+  const theoreticalMax = 1 + possiblePointsAfterFirst // +1 cho obstacle đầu tiên
 
-  // 5. Thêm buffer 20% cho lag/luck
+  // 4. Thêm buffer 30% cho player giỏi
   const withBuffer = Math.floor(theoreticalMax * BUFFER_MULTIPLIER)
 
-  // 6. Hard cap tuyệt đối
+  // 5. Hard cap tuyệt đối
+  return Math.min(withBuffer, HARD_CAP_PER_GAME)
+}
+
+/**
+ * Tính max score theo cách cũ (weighted average spawn interval)
+ * Giữ lại để so sánh nếu cần
+ */
+export function computeMaxScoreAllowedLegacy(
+  durationSeconds: number,
+  config: GameConfigSnapshot
+): number {
+  const safeDuration = Math.min(Math.max(durationSeconds, 0), MAX_GAME_DURATION)
+
+  if (safeDuration < MIN_GAME_DURATION) {
+    return 0
+  }
+
+  const initialSpawnMs = config.spawnInterval || 2500
+  const minSpawnMs = config.minSpawnInterval || 1200
+
+  const avgSpawnInterval = (initialSpawnMs + minSpawnMs) / 2
+  const durationMs = safeDuration * 1000
+  const estimatedObstacles = durationMs / avgSpawnInterval
+  const theoreticalMax = Math.floor(estimatedObstacles)
+  const withBuffer = Math.floor(theoreticalMax * BUFFER_MULTIPLIER)
+
   return Math.min(withBuffer, HARD_CAP_PER_GAME)
 }
 
@@ -112,28 +139,47 @@ export function validateScore(
   const suspicionReasons: string[] = []
   let validatedScore = Math.max(0, Math.floor(clientScore))
 
-  // Check 1: Duration hợp lệ
+  // Check 1: Duration quá ngắn
   if (durationSeconds < MIN_GAME_DURATION) {
     suspicionReasons.push(`Duration too short: ${durationSeconds.toFixed(1)}s < ${MIN_GAME_DURATION}s`)
     validatedScore = 0
   }
 
+  // Check 2: Duration quá dài (chỉ cảnh báo)
   if (durationSeconds > MAX_GAME_DURATION) {
     suspicionReasons.push(`Duration too long: ${durationSeconds.toFixed(1)}s > ${MAX_GAME_DURATION}s`)
-    // Không reject, chỉ tính theo max duration
   }
 
-  // Check 2: Score vs Max allowed
+  // Check 3: Score > 0 nhưng thời gian quá ngắn
+  if (clientScore > 0 && durationSeconds < MIN_SECONDS_FOR_NONZERO_SCORE) {
+    suspicionReasons.push(
+      `Score ${clientScore} with duration ${durationSeconds.toFixed(1)}s < ${MIN_SECONDS_FOR_NONZERO_SCORE}s`
+    )
+    validatedScore = 0
+  }
+
+  // Check 4: Sanity check - mỗi điểm cần thời gian tối thiểu
+  const minDurationForScore = clientScore * MIN_SECONDS_PER_POINT
+  if (clientScore > 0 && durationSeconds < minDurationForScore) {
+    suspicionReasons.push(
+      `Impossible rate: ${clientScore} pts in ${durationSeconds.toFixed(1)}s (min ${minDurationForScore.toFixed(1)}s needed)`
+    )
+    // Tính lại score hợp lệ dựa trên thời gian
+    const maxByRate = Math.floor(durationSeconds / MIN_SECONDS_PER_POINT)
+    validatedScore = Math.min(validatedScore, maxByRate)
+  }
+
+  // Check 5: Score vs Max allowed từ game config
   const maxAllowed = computeMaxScoreAllowed(durationSeconds, config)
 
   if (clientScore > maxAllowed) {
     suspicionReasons.push(
-      `Client score ${clientScore} > maxAllowed ${maxAllowed} (${durationSeconds.toFixed(1)}s)`
+      `score_exceeds_config_limit (score=${clientScore}, maxFromConfig=${maxAllowed}, duration=${durationSeconds.toFixed(1)}s)`
     )
     validatedScore = Math.min(validatedScore, maxAllowed)
   }
 
-  // Check 3: Daily cap
+  // Check 6: Daily cap
   const remainingDailyCap = Math.max(0, DAILY_SCORE_CAP - todayTotalValidatedScore)
 
   if (validatedScore > remainingDailyCap) {
@@ -143,7 +189,7 @@ export function validateScore(
     validatedScore = remainingDailyCap
   }
 
-  // Check 4: Negative score
+  // Check 7: Negative score
   if (clientScore < 0) {
     suspicionReasons.push(`Negative score: ${clientScore}`)
     validatedScore = 0
@@ -177,5 +223,7 @@ export const VALIDATION_CONSTANTS = {
   MIN_GAME_DURATION,
   BUFFER_MULTIPLIER,
   HARD_CAP_PER_GAME,
-  DAILY_SCORE_CAP
+  DAILY_SCORE_CAP,
+  MIN_SECONDS_FOR_NONZERO_SCORE,
+  MIN_SECONDS_PER_POINT
 }

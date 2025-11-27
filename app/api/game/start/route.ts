@@ -6,8 +6,12 @@ import { verifyToken } from '@/lib/auth'
 import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 import { getVietnamDate } from '@/lib/date'
 import { hashClientInfo, type GameConfigSnapshot } from '@/lib/game/validateScore'
+import { rateLimit } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
+
+// Constants
+const MAX_OPEN_SESSIONS = 3 // Max sessions in 'started' status per user
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +31,56 @@ export async function POST(request: NextRequest) {
         { error: 'Token không hợp lệ' },
         { status: 401 }
       )
+    }
+
+    // Rate limiting: 10 requests per minute per user
+    const rateLimitResult = rateLimit(`game-start:${payload.userId}`, {
+      maxRequests: 10,
+      windowMs: 60 * 1000 // 1 minute
+    })
+
+    if (!rateLimitResult.success) {
+      console.warn(`[RATE LIMIT] User ${payload.userId} exceeded game-start rate limit`)
+      return NextResponse.json(
+        { error: 'Bạn thao tác quá nhanh, vui lòng chờ 1 phút' },
+        { status: 429 }
+      )
+    }
+
+    // Check for too many open sessions (prevent session hoarding)
+    const { count: openSessionCount, error: openSessionError } = await supabaseAdmin
+      .from('game_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', payload.userId)
+      .eq('status', 'started')
+
+    if (openSessionError) {
+      console.error('[GAME START] Error checking open sessions:', openSessionError)
+    }
+
+    if (openSessionCount && openSessionCount >= MAX_OPEN_SESSIONS) {
+      console.warn(`[ANTI-CHEAT] User ${payload.userId} has ${openSessionCount} open sessions (max: ${MAX_OPEN_SESSIONS})`)
+
+      // Auto-invalidate oldest open sessions to allow new game
+      const { data: oldSessions } = await supabaseAdmin
+        .from('game_sessions')
+        .select('id')
+        .eq('user_id', payload.userId)
+        .eq('status', 'started')
+        .order('start_time', { ascending: true })
+        .limit(openSessionCount - MAX_OPEN_SESSIONS + 1)
+
+      if (oldSessions && oldSessions.length > 0) {
+        await supabaseAdmin
+          .from('game_sessions')
+          .update({
+            status: 'invalid',
+            suspicion_reason: 'Session expired - too many open sessions'
+          })
+          .in('id', oldSessions.map(s => s.id))
+
+        console.log(`[ANTI-CHEAT] Invalidated ${oldSessions.length} old sessions for user ${payload.userId}`)
+      }
     }
 
     // Get config from database

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { verifyToken, generateGameToken } from '@/lib/auth'
+import { verifyToken } from '@/lib/auth'
 import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 import { getVietnamDate } from '@/lib/date'
+import { hashClientInfo, type GameConfigSnapshot } from '@/lib/game/validateScore'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,11 +53,11 @@ export async function POST(request: NextRequest) {
     const MAX_GAMES_PER_DAY = 50
     if (!isTest) {
       const today = getVietnamDate()
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await supabaseAdmin
         .from('game_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('played_at', `${today}T00:00:00+07:00`)
+        .gte('start_time', `${today}T00:00:00+07:00`)
 
       if (countError) {
         console.error('[GAME START] Error counting games:', countError)
@@ -118,19 +119,64 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate Game Token
-    const sessionId = crypto.randomUUID()
-    const gameToken = generateGameToken({
-      sessionId,
-      userId: user.id,
-      startTime: Date.now()
-    })
+    // Generate server-owned game token (UUID)
+    const gameToken = crypto.randomUUID()
 
+    // Get client info for anti-cheat tracking
+    const clientIp = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    const ipHash = hashClientInfo(clientIp, userAgent)
+
+    // Create config snapshot for validation later
+    const configSnapshot: GameConfigSnapshot = {
+      gravity: config.gameMechanics.gravity,
+      jumpForce: config.gameMechanics.jumpForce,
+      maxFallSpeed: config.gameMechanics.maxFallSpeed,
+      obstacleWidth: config.gameMechanics.obstacleWidth,
+      gapHeight: config.gameMechanics.gapHeight,
+      obstacleSpeed: config.gameMechanics.obstacleSpeed,
+      spawnInterval: config.gameMechanics.spawnInterval,
+      speedIncrement: config.gameMechanics.speedIncrement,
+      speedIncrementInterval: config.gameMechanics.speedIncrementInterval,
+      maxSpeed: config.gameMechanics.maxSpeed,
+      gapDecrease: config.gameMechanics.gapDecrease,
+      minGap: config.gameMechanics.minGap,
+      spawnIntervalDecrease: config.gameMechanics.spawnIntervalDecrease,
+      minSpawnInterval: config.gameMechanics.minSpawnInterval
+    }
+
+    // Insert game session into database (server-owned)
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('game_sessions')
+      .insert({
+        user_id: user.id,
+        game_token: gameToken,
+        status: 'started',
+        start_time: new Date().toISOString(),
+        config_snapshot: configSnapshot,
+        ip_hash: ipHash,
+        user_agent: userAgent.substring(0, 500) // Limit length
+      })
+      .select()
+      .single()
+
+    if (sessionError) {
+      console.error('[GAME START] Failed to create session:', sessionError)
+      return NextResponse.json(
+        { error: 'Không thể tạo phiên chơi' },
+        { status: 500 }
+      )
+    }
+
+    // Return response with server time for client sync
     return NextResponse.json({
       success: true,
       playsRemaining: isTest ? 999 : totalPlaysRemaining - 1,
       gameToken,
-      sessionId
+      serverTime: new Date().toISOString(),
+      config: config.gameMechanics // Send game config to client
     })
 
   } catch (error) {

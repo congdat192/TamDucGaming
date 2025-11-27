@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { verifyToken, verifyGameToken } from '@/lib/auth'
+import { verifyToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
@@ -8,6 +8,12 @@ import { VOUCHER_TIERS } from '@/lib/voucher'
 import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
 import { sendReferralCompletionEmail } from '@/lib/email'
 import { rateLimit } from '@/lib/ratelimit'
+import {
+  validateScore,
+  type GameConfigSnapshot,
+  VALIDATION_CONSTANTS
+} from '@/lib/game/validateScore'
+import { getVietnamDate } from '@/lib/date'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,18 +51,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { score, gameToken } = await request.json()
-    console.log(`[GAME END] Received score: ${score}, token: ${gameToken?.substring(0, 10)}...`)
+    // Parse request body - client chỉ gửi gameToken và score
+    const { gameToken, score } = await request.json()
 
-    if (typeof score !== 'number' || score < 0) {
-      console.error('[GAME END] Invalid score')
-      return NextResponse.json(
-        { error: 'Điểm không hợp lệ' },
-        { status: 400 }
-      )
-    }
-
-    // Verify Game Token
+    // Validate basic input
     if (!gameToken) {
       console.error('[GAME END] Missing game token')
       return NextResponse.json(
@@ -65,61 +63,114 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const gamePayload = verifyGameToken(gameToken)
-    if (!gamePayload) {
-      console.error('[GAME END] Invalid game token')
+    if (typeof score !== 'number') {
+      console.error('[GAME END] Invalid score type')
       return NextResponse.json(
-        { error: 'Game token không hợp lệ hoặc đã hết hạn' },
+        { error: 'Điểm không hợp lệ' },
         { status: 400 }
       )
     }
 
-    if (gamePayload.userId !== payload.userId) {
-      console.error(`[GAME END] Token mismatch. Token user: ${gamePayload.userId}, Auth user: ${payload.userId}`)
+    const clientScore = Math.max(0, Math.floor(score))
+
+    // Find game session by token
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('game_sessions')
+      .select('*')
+      .eq('game_token', gameToken)
+      .single()
+
+    if (sessionError || !session) {
+      console.error('[GAME END] Session not found:', gameToken)
       return NextResponse.json(
-        { error: 'Game token không khớp với người dùng' },
+        { error: 'Không tìm thấy phiên chơi' },
+        { status: 404 }
+      )
+    }
+
+    // Check session status - prevent reuse
+    if (session.status !== 'started') {
+      console.warn(`[ANTI-CHEAT] Session already ${session.status}: ${gameToken} (User: ${payload.userId})`)
+      return NextResponse.json(
+        { error: 'Phiên chơi đã kết thúc hoặc không hợp lệ' },
+        { status: 400 }
+      )
+    }
+
+    // Verify user owns this session
+    if (session.user_id !== payload.userId) {
+      console.error(`[ANTI-CHEAT] Session user mismatch: session=${session.user_id}, auth=${payload.userId}`)
+      return NextResponse.json(
+        { error: 'Phiên chơi không thuộc về bạn' },
         { status: 403 }
       )
     }
 
-    // Anti-Cheat: Improved duration vs score validation
-    const currentTimestamp = Date.now()
-    const durationSeconds = (currentTimestamp - gamePayload.startTime) / 1000
+    // Calculate server-side duration
+    const now = new Date()
+    const startTime = new Date(session.start_time)
+    const durationSeconds = Math.max(1, (now.getTime() - startTime.getTime()) / 1000)
 
-    // Check 1: Minimum game duration (prevent instant submission)
-    if (durationSeconds < 5) {
-      console.warn(`[ANTI-CHEAT] Game too short: ${durationSeconds}s (User: ${payload.userId})`)
+    console.log(`[GAME END] Token: ${gameToken.substring(0, 8)}..., Client score: ${clientScore}, Duration: ${durationSeconds.toFixed(1)}s`)
+
+    // Get today's total validated score for daily cap
+    const today = getVietnamDate()
+    const { data: todaySessions } = await supabaseAdmin
+      .from('game_sessions')
+      .select('validated_score, start_time')
+      .eq('user_id', session.user_id)
+      .eq('status', 'finished')
+      .not('validated_score', 'is', null)
+
+    const todayTotalValidatedScore = (todaySessions || [])
+      .filter(s => {
+        const sessionDate = new Date(s.start_time)
+        const todayStart = new Date(`${today}T00:00:00+07:00`)
+        return sessionDate >= todayStart
+      })
+      .reduce((sum, s) => sum + (s.validated_score || 0), 0)
+
+    // Get config snapshot from session or fallback to current config
+    const configSnapshot = session.config_snapshot as GameConfigSnapshot ||
+      (await getGameConfig()).gameMechanics
+
+    // Validate score using server-side logic
+    const validationResult = validateScore(
+      clientScore,
+      durationSeconds,
+      configSnapshot,
+      todayTotalValidatedScore
+    )
+
+    const { validatedScore, suspicionReason } = validationResult
+
+    // Log suspicious activity
+    if (suspicionReason) {
+      console.warn(`[ANTI-CHEAT] Suspicious: ${suspicionReason} (User: ${payload.userId}, Token: ${gameToken.substring(0, 8)}...)`)
+    }
+
+    // Update session - mark as finished
+    const { error: updateError } = await supabaseAdmin
+      .from('game_sessions')
+      .update({
+        status: 'finished',
+        end_time: now.toISOString(),
+        client_score: clientScore,
+        client_duration_seconds: Math.round(durationSeconds),
+        validated_score: validatedScore,
+        suspicion_reason: suspicionReason
+      })
+      .eq('id', session.id)
+
+    if (updateError) {
+      console.error('[GAME END] Failed to update session:', updateError)
       return NextResponse.json(
-        { error: 'Game quá ngắn (nghi vấn hack)' },
-        { status: 400 }
+        { error: 'Không thể cập nhật phiên chơi' },
+        { status: 500 }
       )
     }
 
-    // Check 2: Maximum game duration (token expires after 1h)
-    if (durationSeconds > 3600) {
-      console.warn(`[ANTI-CHEAT] Game too long: ${durationSeconds}s (User: ${payload.userId})`)
-      return NextResponse.json(
-        { error: 'Game quá lâu, vui lòng chơi lại' },
-        { status: 400 }
-      )
-    }
-
-    // Check 3: Score vs duration (stricter: 2 points/sec max)
-    const maxPossibleScore = Math.floor(durationSeconds * 2)
-    console.log(`[GAME END] Duration: ${durationSeconds}s, Score: ${score}, Max: ${maxPossibleScore}`)
-
-    if (score > maxPossibleScore) {
-      console.warn(`[ANTI-CHEAT] Suspicious score: ${score} in ${durationSeconds}s (User: ${payload.userId})`)
-      return NextResponse.json(
-        { error: 'Điểm số không hợp lệ (nghi vấn hack)' },
-        { status: 400 }
-      )
-    }
-
-    // Get config from database
-    const config = await getGameConfig()
-
-    // Get user
+    // Get user for score update
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -134,70 +185,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Anti-Cheat: Check if session already submitted (prevent replay attack)
-    const { data: existingSession } = await supabaseAdmin
-      .from('game_sessions')
-      .select('id')
-      .eq('session_id', gamePayload.sessionId)
-      .single()
-
-    if (existingSession) {
-      console.warn(`[ANTI-CHEAT] Session already submitted: ${gamePayload.sessionId} (User: ${payload.userId})`)
-      return NextResponse.json(
-        { error: 'Game session đã được submit rồi' },
-        { status: 400 }
-      )
-    }
-
-    // Get active campaign
-    const now = new Date().toISOString()
-    const { data: campaign, error: campaignError } = await supabase
-      .from('campaigns')
-      .select('id')
-      .eq('is_active', true)
-      .lte('start_date', now)
-      .gte('end_date', now)
-      .limit(1)
-
-    const activeCampaign = campaign && campaign.length > 0 ? campaign[0] : null
-
-    if (campaignError) {
-      console.error('[GAME END] Error fetching campaign:', campaignError)
-    }
-
-    // Save game session with session_id
-    const { error: sessionError } = await supabaseAdmin
-      .from('game_sessions')
-      .insert({
-        session_id: gamePayload.sessionId,
-        user_id: user.id,
-        score,
-        campaign_id: activeCampaign?.id || null
-      })
-
-    if (sessionError) {
-      console.error('Failed to save game session:', sessionError)
-      return NextResponse.json(
-        { error: 'Không thể lưu kết quả chơi' },
-        { status: 500 }
-      )
-    }
-
-    // Update user's total score (CRITICAL: Must succeed)
-    const newTotalScore = user.total_score + score
-    const { error: updateError } = await supabaseAdmin
+    // Update user's total score with VALIDATED score (not client score)
+    const newTotalScore = user.total_score + validatedScore
+    const { error: userUpdateError } = await supabaseAdmin
       .from('users')
       .update({
         total_score: newTotalScore
       })
       .eq('id', user.id)
 
-    if (updateError) {
-      console.error('[GAME END] CRITICAL: Failed to update user score:', updateError)
+    if (userUpdateError) {
+      console.error('[GAME END] CRITICAL: Failed to update user score:', userUpdateError)
       return NextResponse.json(
         { error: 'Không thể cập nhật điểm số' },
         { status: 500 }
       )
+    }
+
+    // Get active campaign
+    const nowIso = new Date().toISOString()
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('id')
+      .eq('is_active', true)
+      .lte('start_date', nowIso)
+      .gte('end_date', nowIso)
+      .limit(1)
+
+    // Update campaign_id if active
+    if (campaign && campaign.length > 0) {
+      await supabaseAdmin
+        .from('game_sessions')
+        .update({ campaign_id: campaign[0].id })
+        .eq('id', session.id)
     }
 
     // Check for referral reward (first game completed by referred user)
@@ -209,7 +229,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (referral) {
-      // Give bonus play to referrer (using config from DB)
+      const config = await getGameConfig()
+
+      // Give bonus play to referrer
       const { data: referrer } = await supabase
         .from('users')
         .select('bonus_plays, email')
@@ -270,11 +292,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Return validated score to client
+    // Client can show validated_score on scoreboard
+    // Don't tell client if they were flagged - just show the validated score
     return NextResponse.json({
       success: true,
-      score,
+      score: validatedScore, // Return validated score (not client score)
       totalScore: newTotalScore,
-      availableVouchers // Return list of vouchers user can choose from
+      availableVouchers,
+      // Debug info (có thể bỏ trong production)
+      ...(process.env.NODE_ENV === 'development' && {
+        debug: {
+          clientScore,
+          validatedScore,
+          durationSeconds: Math.round(durationSeconds),
+          suspicionReason
+        }
+      })
     })
 
   } catch (error) {

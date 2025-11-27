@@ -88,6 +88,10 @@ export default function DashboardPage() {
                         <div className="text-2xl mb-2">📅</div>
                         <div className="text-white text-sm">Chiến dịch</div>
                     </a>
+                    <a href="/admin/suspicious" className="p-4 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition text-center border border-red-500/30">
+                        <div className="text-2xl mb-2">🚨</div>
+                        <div className="text-white text-sm">Nghi vấn</div>
+                    </a>
                 </div>
             </div>
         </div>

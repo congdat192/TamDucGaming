@@ -167,7 +167,6 @@ export default function GamePage() {
 
   const handleGameOver = useCallback(async (score: number) => {
     setIsPlaying(false)
-    setFinalScore(score)
 
     try {
       // Submit score and get available vouchers
@@ -179,6 +178,14 @@ export default function GamePage() {
 
       const data = await res.json()
 
+      // Use validated score from server (not client score)
+      // Server validates and may adjust the score
+      if (data.score !== undefined) {
+        setFinalScore(data.score) // validated_score from server
+      } else {
+        setFinalScore(score) // fallback to client score if error
+      }
+
       if (data.totalScore !== undefined) {
         setTotalScore(data.totalScore)
       }
@@ -187,6 +194,7 @@ export default function GamePage() {
       refreshAuth()
     } catch (error) {
       console.error('Failed to submit score:', error)
+      setFinalScore(score) // fallback on error
     }
 
     // NEW LOGIC: Always show GameOverModal after game ends

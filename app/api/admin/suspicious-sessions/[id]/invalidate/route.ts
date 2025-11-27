@@ -28,10 +28,10 @@ export async function POST(
   const { id: sessionId } = await params
 
   try {
-    // Get session to find validated_score
+    // Get session to find validated_score and suspicion_reason
     const { data: session, error: fetchError } = await supabaseAdmin
       .from('game_sessions')
-      .select('user_id, validated_score, status')
+      .select('user_id, validated_score, status, suspicion_reason')
       .eq('id', sessionId)
       .single()
 
@@ -44,11 +44,12 @@ export async function POST(
     }
 
     // Mark session as invalid
+    const currentReason = (session.suspicion_reason as string) || ''
     const { error: updateError } = await supabaseAdmin
       .from('game_sessions')
       .update({
         status: 'invalid',
-        suspicion_reason: (session.suspicion_reason || '') + ' | Admin invalidated'
+        suspicion_reason: currentReason + ' | Admin invalidated'
       })
       .eq('id', sessionId)
 

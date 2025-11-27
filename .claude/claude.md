@@ -340,5 +340,100 @@ phukienmatkinh668@gmail.com: 21 → 51  (+30)
 
 ---
 
-**Last Updated:** 2025-01-25 (Initial creation with verified architecture)
+---
+
+#### [2025-01-27] [BUG] TypeScript error - Property does not exist on type in Supabase select
+
+**Description:** Vercel build failed with error: `Property 'suspicion_reason' does not exist on type '{ user_id: any; validated_score: any; status: any; }'`
+
+**Root cause:**
+- Supabase `.select()` query only included some fields: `select('user_id, validated_score, status')`
+- Later code tried to access `session.suspicion_reason` which wasn't in the select
+- TypeScript correctly flagged this as an error since the field wasn't in the query result type
+
+**Code issue:**
+```typescript
+// ❌ Wrong - suspicion_reason not in select
+const { data: session } = await supabaseAdmin
+  .from('game_sessions')
+  .select('user_id, validated_score, status')  // Missing suspicion_reason!
+  .single()
+
+// Later tries to use it
+suspicion_reason: (session.suspicion_reason || '') + ' | Admin invalidated'  // TS Error!
+```
+
+**Prevention:**
+1. **ALWAYS include all fields** you need to access later in the `.select()` query
+2. If accessing a field from query result, verify it's in the select string
+3. Use TypeScript to catch these errors early with `npm run build` before pushing
+
+**Solution implemented:**
+```typescript
+// ✅ Correct - include suspicion_reason in select
+const { data: session } = await supabaseAdmin
+  .from('game_sessions')
+  .select('user_id, validated_score, status, suspicion_reason')  // Added!
+  .single()
+
+// Type-safe access with explicit cast
+const currentReason = (session.suspicion_reason as string) || ''
+```
+
+**Rule:**
+- ❌ Never access fields from Supabase query result that aren't in the `.select()` string
+- ❌ Never assume a field exists just because it's in the table schema
+- ✅ Always list ALL needed fields explicitly in `.select()`
+- ✅ Always run `npm run build` locally before pushing to catch TypeScript errors
+- ✅ Use explicit type casting when Supabase types are uncertain: `as string`, `as number`
+
+---
+
+## 8. Anti-Cheat System (Added 2025-01-27)
+
+### Overview
+Server-side score validation system to prevent cheating in game.
+
+### Key Components
+- **`lib/game/validateScore.ts`** - Score validation logic
+- **`app/api/game/start/route.ts`** - Creates server-owned game session
+- **`app/api/game/end/route.ts`** - Validates and stores scores
+- **`app/admin/suspicious/page.tsx`** - Admin monitoring panel
+
+### Flow
+1. **Game Start:** Server creates `game_session` with unique `game_token`
+2. **During Game:** Client only holds `gameToken`
+3. **Game End:** Client sends `{ gameToken, score }`
+4. **Validation:** Server calculates `validated_score` based on:
+   - Duration (from server timestamps, not client)
+   - Config snapshot (game settings at start time)
+   - Daily cap (500 pts/day)
+   - Per-game cap (200 pts/game)
+5. **Storage:** Both `client_score` and `validated_score` saved
+6. **Leaderboard/Vouchers:** Use `validated_score` only
+
+### Constants (in `lib/game/validateScore.ts`)
+```typescript
+MAX_GAME_DURATION = 300    // 5 minutes max
+MIN_GAME_DURATION = 3      // 3 seconds min
+BUFFER_MULTIPLIER = 1.2    // +20% buffer for lag
+HARD_CAP_PER_GAME = 200    // max points per game
+DAILY_SCORE_CAP = 500      // max points per day
+```
+
+### Database Columns (game_sessions)
+- `game_token` - Server-generated UUID
+- `status` - 'started' | 'finished' | 'invalid'
+- `client_score` - What client sent (for logging)
+- `validated_score` - What server validated (for leaderboard)
+- `suspicion_reason` - Why flagged (if suspicious)
+- `config_snapshot` - Game config at start time
+
+### Admin Panel
+- URL: `/admin/suspicious`
+- Features: View flagged sessions, invalidate cheaters, track stats
+
+---
+
+**Last Updated:** 2025-01-27 (Added anti-cheat system, TypeScript Supabase select bug)
 **Verified Against:** Actual codebase analysis, not assumptions

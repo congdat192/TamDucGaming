@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
 import { notifyReferralBonus } from '@/lib/notifications'
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { phone } = await request.json()
+    const { phone, otp } = await request.json()
 
     // Get config from database
     const config = await getGameConfig()
@@ -42,8 +41,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ========== OTP VERIFICATION (REQUIRED) - Use otp_login_vihat table ==========
+    if (!otp) {
+      return NextResponse.json(
+        { error: 'Vui lòng nhập mã OTP' },
+        { status: 400 }
+      )
+    }
+
+    const now = new Date()
+
+    // Find OTP record from otp_login_vihat table
+    const { data: otpRecord, error: otpError } = await supabaseAdmin
+      .from('otp_login_vihat')
+      .select('*')
+      .eq('phone', phone)
+      .eq('otp_code', otp)
+      .eq('verified', false)
+      .gt('expires_at', now.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (otpError || !otpRecord) {
+      return NextResponse.json(
+        { error: 'Mã OTP không đúng hoặc đã hết hạn' },
+        { status: 400 }
+      )
+    }
+
+    // Check max attempts (5 attempts max)
+    if (otpRecord.attempts >= 5) {
+      return NextResponse.json(
+        { error: 'Đã thử sai 5 lần. Vui lòng yêu cầu mã OTP mới' },
+        { status: 400 }
+      )
+    }
+
+    // Mark OTP as verified
+    await supabaseAdmin
+      .from('otp_login_vihat')
+      .update({
+        verified: true,
+        verified_at: now.toISOString()
+      })
+      .eq('id', otpRecord.id)
+
+    console.log(`[OTP VERIFIED] Record ${otpRecord.id} for phone ${phone}`)
+    // ========== END OTP VERIFICATION ==========
+
     // Get current user
-    const { data: user, error: userError } = await supabase
+    const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', payload.userId)
@@ -65,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if phone already exists in another account
-    const { data: existingPhone } = await supabase
+    const { data: existingPhone } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('phone', phone)
@@ -82,9 +130,14 @@ export async function POST(request: NextRequest) {
     const bonusPlays = config.bonusPlaysForPhone
 
     // 1. Update phone number first (using admin client for proper permissions)
+    // Also set phone_verified = true since OTP was verified
     const { error: updatePhoneError } = await supabaseAdmin
       .from('users')
-      .update({ phone })
+      .update({
+        phone,
+        phone_verified: true,
+        phone_verified_at: new Date().toISOString()
+      })
       .eq('id', payload.userId)
 
     if (updatePhoneError) {

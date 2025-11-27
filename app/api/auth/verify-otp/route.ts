@@ -78,7 +78,10 @@ export async function POST(request: NextRequest) {
           referral_code: newReferralCode,
           plays_today: 0,
           bonus_plays: 0,
-          total_score: 0
+          total_score: 0,
+          // Set phone_verified if login via phone OTP
+          phone_verified: !isEmailLogin ? true : false,
+          phone_verified_at: !isEmailLogin ? new Date().toISOString() : null
         })
         .select()
         .single()
@@ -134,6 +137,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Update phone_verified for existing user if login via phone and not yet verified
+    if (!isNewUser && !isEmailLogin && !user.phone_verified) {
+      await supabaseAdmin
+        .from('users')
+        .update({
+          phone_verified: true,
+          phone_verified_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      user.phone_verified = true
+      console.log(`[PHONE VERIFIED] User ${user.id} phone verified via OTP`)
+    }
+
     // Check if today is a new day, reset plays_today
     const today = new Date().toISOString().split('T')[0]
     if (user.last_play_date !== today && !isNewUser) {
@@ -182,7 +199,8 @@ export async function POST(request: NextRequest) {
         referral_code: user.referral_code,
         plays_today: user.plays_today,
         bonus_plays: user.bonus_plays,
-        total_score: user.total_score
+        total_score: user.total_score,
+        phone_verified: user.phone_verified || false
       },
       isNewUser
     })

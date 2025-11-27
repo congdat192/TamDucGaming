@@ -20,6 +20,7 @@ Santa Jump là web game sử dụng Next.js 14, cho phép người chơi:
 - **Data Fetching:** SWR (client-side)
 - **Authentication:** JWT-based with OTP verification
 - **Email:** Resend (primary), Nodemailer/Gmail SMTP (fallback)
+- **SMS/ZNS OTP:** VIHAT MultiChannel (ZNS → SMS fallback)
 - **Deployment:** Vercel
 
 ## Project Structure
@@ -55,6 +56,7 @@ Santa Jump là web game sử dụng Next.js 14, cho phép người chơi:
 │   ├── emailService.ts     # Email with fallback logic
 │   ├── gameConfig.ts       # Game configuration
 │   ├── ratelimit.ts        # Rate limiting
+│   ├── vihat.ts            # VIHAT SMS/ZNS OTP service
 │   └── game/               # Game logic
 │       ├── engine.ts       # Game engine (SantaJumpGame)
 │       └── validateScore.ts # Server-side score validation
@@ -92,6 +94,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # App
 # Mock OTP (set false for real OTP)
 MOCK_OTP_ENABLED=true
+
+# VIHAT SMS/ZNS (eSMS.vn)
+VIHAT_API_KEY=your-api-key
+VIHAT_SECRET_KEY=your-secret-key
+VIHAT_BRANDNAME=YOUR_BRAND
+VIHAT_ZNS_TEMPLATE_ID=your-template-id
+VIHAT_ZALO_OAID=your-zalo-oaid
 ```
 
 ### 3. Run development server
@@ -190,3 +199,75 @@ console.log(data.c)  // Works!
 
 ### Build before push
 Always run `npm run build` locally before pushing to catch TypeScript errors early.
+
+## Phone OTP System (VIHAT ZNS/SMS)
+
+### Overview
+Phone verification uses VIHAT (eSMS.vn) MultiChannel API with automatic fallback:
+- **Primary:** ZNS (Zalo Notification Service) - cheaper, higher delivery rate
+- **Fallback:** SMS - when ZNS fails (user not on Zalo, etc.)
+
+### Architecture
+```
+User → /api/auth/send-otp → lib/vihat.ts → VIHAT MultiChannel API
+                                            ├── Try ZNS first
+                                            └── Auto fallback SMS
+```
+
+### Database Tables
+- **`otp_codes`** - For EMAIL OTP only
+- **`otp_login_vihat`** - For PHONE OTP via VIHAT
+
+### Table: otp_login_vihat
+```sql
+id UUID PRIMARY KEY
+phone VARCHAR(20) NOT NULL
+otp_code VARCHAR(10) NOT NULL
+minute INTEGER DEFAULT 5
+created_at TIMESTAMPTZ
+expires_at TIMESTAMPTZ
+verified BOOLEAN DEFAULT FALSE
+attempts INTEGER DEFAULT 0
+ip_address VARCHAR(45)
+cost NUMERIC(10,2) DEFAULT 500
+brandname VARCHAR(50)
+campaign_id VARCHAR(100)
+channel_sent VARCHAR(20)  -- 'zns', 'sms', 'multi', 'mock', 'failed', 'pending'
+sms_request_id VARCHAR(100)
+zns_request_id VARCHAR(100)
+notes TEXT
+```
+
+### Rate Limiting (Cost Protection)
+| Limit | Value | Purpose |
+|-------|-------|---------|
+| Delay between OTP | 60 seconds | Prevent spam same phone |
+| Per phone/hour | 5 OTP max | Limit per user |
+| Per IP/hour | 20 OTP max | Block bot spam |
+| Daily cost cap | 200,000 VND | Business cost protection |
+
+### VIHAT MultiChannel API
+```typescript
+// Endpoint
+POST https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/
+
+// Payload
+{
+  ApiKey: "xxx",
+  SecretKey: "xxx",
+  Phone: "84xxxxxxxxx",
+  Channels: ['zalo', 'sms'],  // Priority order
+  Data: [
+    // ZNS config
+    { TempID: "478665", Params: [otp, "5"], OAID: "xxx" },
+    // SMS config (fallback)
+    { Content: "Ma xac thuc: xxx", Brandname: "MKTAMDUC" }
+  ]
+}
+```
+
+### Key Files
+- `lib/vihat.ts` - VIHAT API integration
+- `app/api/auth/send-otp/route.ts` - OTP sending endpoint
+- `app/api/auth/verify-otp/route.ts` - OTP verification endpoint
+- `app/api/user/add-phone-bonus/route.ts` - Phone bonus with OTP verify

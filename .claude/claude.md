@@ -9,6 +9,7 @@
 - **Data Fetching:** SWR for client-side
 - **Auth:** JWT tokens with OTP verification (custom implementation)
 - **Email:** Resend (primary), Nodemailer/Gmail SMTP (fallback)
+- **SMS/ZNS OTP:** VIHAT MultiChannel (ZNS → SMS fallback)
 - **Deployment:** Vercel with cron jobs
 
 ## 2. Project Architecture
@@ -39,6 +40,12 @@
   - Priority: Resend → Fallback: Gmail SMTP (Nodemailer)
   - Auto-fallback on rate limits or errors
   - All emails logged to `email_logs` table
+- **SMS/ZNS OTP Service:**
+  - Provider: VIHAT (eSMS.vn) MultiChannel API
+  - Priority: ZNS (Zalo) → Fallback: SMS
+  - **Table `otp_codes`** - For EMAIL OTP only
+  - **Table `otp_login_vihat`** - For PHONE OTP via VIHAT
+  - All OTP records logged with cost, channel, request IDs
 - **API Response Pattern:**
   ```ts
   return NextResponse.json({ data }, { status: 200 })
@@ -463,5 +470,144 @@ tFirstPoint = (WIDTH - SANTA_X - obstacleWidth) / (obstacleSpeed * 60)
 
 ---
 
-**Last Updated:** 2025-01-27 (Enhanced anti-cheat with config-based validation, rate limits, race condition fix)
+## 9. Phone OTP System - VIHAT ZNS/SMS (Updated 2025-11-27)
+
+### Overview
+Phone verification uses VIHAT (eSMS.vn) MultiChannel API with automatic fallback:
+- **Primary:** ZNS (Zalo Notification Service) - cheaper, higher delivery rate
+- **Fallback:** SMS - when ZNS fails (user not on Zalo, etc.)
+
+### Key Components
+- **`lib/vihat.ts`** - VIHAT MultiChannel API integration
+- **`app/api/auth/send-otp/route.ts`** - OTP sending with rate limits
+- **`app/api/auth/verify-otp/route.ts`** - OTP verification
+- **`app/api/user/add-phone-bonus/route.ts`** - Phone bonus with OTP verify
+
+### Database Tables (IMPORTANT!)
+```
+┌─────────────────────┬──────────────────────────────┐
+│ Table               │ Purpose                      │
+├─────────────────────┼──────────────────────────────┤
+│ otp_codes           │ EMAIL OTP only               │
+│ otp_login_vihat     │ PHONE OTP via VIHAT          │
+└─────────────────────┴──────────────────────────────┘
+```
+
+### Table: otp_login_vihat Schema
+```sql
+id UUID PRIMARY KEY
+phone VARCHAR(20) NOT NULL
+otp_code VARCHAR(10) NOT NULL
+minute INTEGER DEFAULT 5
+created_at TIMESTAMPTZ
+expires_at TIMESTAMPTZ
+verified BOOLEAN DEFAULT FALSE
+attempts INTEGER DEFAULT 0
+ip_address VARCHAR(45)
+cost NUMERIC(10,2) DEFAULT 500
+brandname VARCHAR(50)
+campaign_id VARCHAR(100)
+channel_sent VARCHAR(20)  -- 'zns', 'sms', 'multi', 'mock', 'failed', 'pending'
+sms_request_id VARCHAR(100)
+zns_request_id VARCHAR(100)
+notes TEXT
+```
+
+### VIHAT MultiChannel API
+```typescript
+// Endpoint
+POST https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/
+
+// Payload structure in lib/vihat.ts
+{
+  ApiKey: process.env.VIHAT_API_KEY,
+  SecretKey: process.env.VIHAT_SECRET_KEY,
+  Phone: "84xxxxxxxxx",  // Must be 84xxx format
+  Channels: ['zalo', 'sms'],  // Priority: ZNS first, SMS fallback
+  Data: [
+    // ZNS config (index 0)
+    {
+      TempID: "478665",           // ZNS Template ID (đã duyệt)
+      Params: [otpCode, "5"],     // [otp, minutes]
+      OAID: "939629380721919913", // Zalo OA ID
+      campaignid: "OTP Game MKTD",
+      RequestId: recordId,
+      Sandbox: "0",
+      SendingMode: "1"
+    },
+    // SMS config (index 1 - fallback)
+    {
+      Content: "MKTAMDUC - Ma xac thuc cua ban la xxx...",
+      IsUnicode: "0",
+      SmsType: "2",  // OTP type
+      Brandname: "MKTAMDUC",
+      RequestId: recordId,
+      Sandbox: "0"
+    }
+  ]
+}
+
+// Success Response
+{ CodeResult: "100", SMSID: "xxx" }
+```
+
+### Rate Limiting (Cost Protection)
+```typescript
+// In app/api/auth/send-otp/route.ts
+const RATE_LIMITS = {
+  DELAY_BETWEEN_MS: 60000,      // 60s giữa các request cùng SĐT
+  MAX_PER_PHONE_HOUR: 5,        // 5 OTP/phone/hour
+  MAX_PER_IP_HOUR: 20,          // 20 OTP/IP/hour (chặn spam)
+  MAX_DAILY_COST_VND: 200000,   // 200,000 VND/ngày max
+}
+```
+
+### Environment Variables
+```env
+MOCK_OTP_ENABLED=true           # true = log OTP only, false = send real ZNS/SMS
+VIHAT_API_KEY=xxx               # Server-side only
+VIHAT_SECRET_KEY=xxx            # Server-side only
+VIHAT_BRANDNAME=MKTAMDUC        # SMS sender brandname
+VIHAT_ZNS_TEMPLATE_ID=478665    # ZNS template (đã duyệt trên eSMS)
+VIHAT_ZALO_OAID=xxx             # Zalo Official Account ID
+```
+
+### OTP Flow
+```
+1. User enters phone → POST /api/auth/send-otp
+2. Server checks rate limits (per-phone, per-IP, daily cost)
+3. Generate OTP → Insert to otp_login_vihat table
+4. Call VIHAT MultiChannel API (ZNS → SMS fallback)
+5. Update record with channel_sent, sms_request_id
+6. User receives OTP → POST /api/auth/verify-otp
+7. Server verifies from otp_login_vihat table
+8. Mark verified=true, return JWT token
+```
+
+### Security Checklist
+- ✅ API keys server-side only (.env)
+- ✅ Rate limit per phone (60s delay, 5/hour)
+- ✅ Rate limit per IP (20/hour) - block bot spam
+- ✅ Daily cost cap (200,000 VND/day)
+- ✅ Vietnamese phone validation
+- ✅ Fallback to email when SMS cap reached
+- ✅ ZNS priority (cheaper) with SMS fallback
+
+### Cost Estimation
+- ZNS cost: ~200-300 VND/message
+- SMS cost: ~400-500 VND/message
+- Daily cap 200,000 VND ≈ 400-1000 OTP/day
+- Monthly max = ~6,000,000 VND (worst case all SMS)
+
+### Rules for Claude
+- ❌ Never use `otp_codes` table for phone OTP
+- ❌ Never use `otp_login_vihat` table for email OTP
+- ✅ Always use `otp_login_vihat` for phone OTP operations
+- ✅ Always use `otp_codes` for email OTP operations
+- ✅ Always use `supabaseAdmin` for OTP database operations
+- ✅ Always pass recordId to sendVihatOTP for tracking
+
+---
+
+**Last Updated:** 2025-11-27 (Enhanced VIHAT ZNS/SMS with MultiChannel API, separate tables for email/phone OTP)
 **Verified Against:** Actual codebase analysis, not assumptions

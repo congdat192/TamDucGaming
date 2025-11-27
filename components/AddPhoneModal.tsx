@@ -20,10 +20,15 @@ interface AddPhoneModalProps {
   onSuccess: () => void
 }
 
+type Step = 'phone' | 'otp'
+
 export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneModalProps) {
+  const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [countdown, setCountdown] = useState(0)
   const [modalContent, setModalContent] = useState<ModalContentData | null>(null)
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null)
 
@@ -63,9 +68,18 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
     loadContent()
   }, [])
 
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [countdown])
+
   if (!isOpen || !modalContent) return null
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Send OTP to phone
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (phone.length < 10) {
@@ -77,7 +91,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
     setLoading(true)
 
     try {
-      const res = await fetch('/api/user/add-phone-bonus', {
+      const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
@@ -86,7 +100,43 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Không thể cập nhật số điện thoại')
+        throw new Error(data.error || 'Không thể gửi OTP')
+      }
+
+      // Move to OTP step
+      setStep('otp')
+      setCountdown(60) // 60s before can resend
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 2: Verify OTP and add phone bonus
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (otp.length < 4) {
+      setError('Vui lòng nhập mã OTP')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      // Verify OTP and update phone in one call
+      const res = await fetch('/api/user/add-phone-bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể xác thực OTP')
       }
 
       onSuccess()
@@ -98,10 +148,48 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
     }
   }
 
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (countdown > 0) return
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể gửi lại OTP')
+      }
+
+      setCountdown(60)
+      setOtp('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleClose = () => {
     setPhone('')
+    setOtp('')
     setError('')
+    setStep('phone')
+    setCountdown(0)
     onClose()
+  }
+
+  const handleBack = () => {
+    setStep('phone')
+    setOtp('')
+    setError('')
   }
 
   return (
@@ -144,28 +232,80 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                placeholder="Nhập số điện thoại..."
-                className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none text-lg text-center transition-all"
-                maxLength={10}
-                required
-                autoFocus
-              />
-            </div>
+          {/* Step 1: Enter Phone */}
+          {step === 'phone' && (
+            <form onSubmit={handleSendOTP} className="space-y-4">
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Nhập số điện thoại..."
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none text-lg text-center transition-all"
+                  maxLength={10}
+                  required
+                  autoFocus
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading || phone.length < 10}
-              className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20"
-            >
-              {loading ? 'ĐANG XỬ LÝ...' : modalContent.buttonText}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading || phone.length < 10}
+                className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20"
+              >
+                {loading ? 'ĐANG GỬI OTP...' : 'GỬI MÃ XÁC THỰC'}
+              </button>
+            </form>
+          )}
+
+          {/* Step 2: Enter OTP */}
+          {step === 'otp' && (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <p className="text-white/60 text-sm mb-2">
+                Mã OTP đã được gửi đến <span className="text-yellow-400 font-medium">{phone}</span>
+              </p>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Nhập mã OTP..."
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none text-2xl text-center tracking-[0.5em] font-mono transition-all"
+                  maxLength={6}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || otp.length < 4}
+                className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20"
+              >
+                {loading ? 'ĐANG XÁC THỰC...' : modalContent.buttonText}
+              </button>
+
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="text-white/50 hover:text-white/80 transition-colors"
+                >
+                  ← Đổi số điện thoại
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={countdown > 0 || loading}
+                  className="text-yellow-400 hover:text-yellow-300 disabled:text-white/30 disabled:cursor-not-allowed transition-colors"
+                >
+                  {countdown > 0 ? `Gửi lại (${countdown}s)` : 'Gửi lại OTP'}
+                </button>
+              </div>
+            </form>
+          )}
 
           <button
             onClick={handleClose}

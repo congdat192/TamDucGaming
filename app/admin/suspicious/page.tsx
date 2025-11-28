@@ -40,14 +40,15 @@ export default function SuspiciousSessionsPage() {
 
   const fetchSessions = async () => {
     try {
-      const token = localStorage.getItem('admin-token')
       const res = await fetch(`/api/admin/suspicious-sessions?filter=${filter}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include' // Send cookies automatically
       })
       if (res.ok) {
         const data = await res.json()
         setSessions(data.sessions || [])
         setStats(data.stats || null)
+      } else {
+        console.error('Failed to fetch sessions:', res.status)
       }
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
@@ -58,13 +59,14 @@ export default function SuspiciousSessionsPage() {
 
   const markAsInvalid = async (sessionId: string) => {
     try {
-      const token = localStorage.getItem('admin-token')
       const res = await fetch(`/api/admin/suspicious-sessions/${sessionId}/invalidate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include' // Send cookies automatically
       })
       if (res.ok) {
         fetchSessions()
+      } else {
+        console.error('Failed to invalidate session:', res.status)
       }
     } catch (error) {
       console.error('Failed to mark session:', error)

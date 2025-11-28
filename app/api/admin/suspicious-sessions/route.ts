@@ -1,24 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'santa-jump-secret'
 
-function verifyAdminToken(request: NextRequest): boolean {
+async function verifyAdminToken(request: NextRequest): Promise<boolean> {
+  // Try Authorization header first (for API calls with Bearer token)
   const authHeader = request.headers.get('authorization')
-  if (!authHeader) return false
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '')
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as { role?: string; isAdmin?: boolean }
+      return payload.role === 'admin' || payload.isAdmin === true
+    } catch {
+      // Continue to check cookie
+    }
+  }
 
-  const token = authHeader.replace('Bearer ', '')
+  // Try cookie (for browser requests)
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { role?: string }
-    return payload.role === 'admin'
+    const cookieStore = await cookies()
+    const token = cookieStore.get('admin-token')?.value
+    if (!token) return false
+
+    const payload = jwt.verify(token, JWT_SECRET) as { isAdmin?: boolean }
+    return payload.isAdmin === true
   } catch {
     return false
   }
 }
 
 export async function GET(request: NextRequest) {
-  if (!verifyAdminToken(request)) {
+  if (!(await verifyAdminToken(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

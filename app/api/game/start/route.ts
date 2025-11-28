@@ -7,6 +7,7 @@ import { getGameConfig, isTestAccount } from '@/lib/gameConfig'
 import { getVietnamDate } from '@/lib/date'
 import { hashClientInfo, type GameConfigSnapshot } from '@/lib/game/validateScore'
 import { rateLimit } from '@/lib/ratelimit'
+import { isDesktopBrowser, isDesktopWhitelisted } from '@/lib/userAgent'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,30 @@ export async function POST(request: NextRequest) {
         { error: 'Token không hợp lệ' },
         { status: 401 }
       )
+    }
+
+    // 🚫 ANTI-CHEAT: Block desktop browsers (mobile-only game)
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    if (isDesktopBrowser(userAgent)) {
+      // Check if user is in whitelist (admins can test on desktop)
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', payload.userId)
+        .single()
+
+      if (!user || !isDesktopWhitelisted(user.email)) {
+        console.warn(`[ANTI-CHEAT] Desktop browser blocked for user ${payload.userId}`)
+        return NextResponse.json(
+          {
+            error: 'Game chỉ hỗ trợ trên điện thoại di động. Vui lòng mở bằng trình duyệt trên điện thoại.',
+            errorCode: 'DESKTOP_NOT_ALLOWED'
+          },
+          { status: 403 }
+        )
+      } else {
+        console.log(`[ADMIN] Desktop access allowed for whitelisted user: ${user.email}`)
+      }
     }
 
     // Rate limiting: 10 requests per minute per user
@@ -176,11 +201,14 @@ export async function POST(request: NextRequest) {
     // Generate server-owned game token (UUID)
     const gameToken = crypto.randomUUID()
 
+    // 🔐 PAYLOAD SIGNING: Generate challenge for HMAC verification
+    const challenge = crypto.randomUUID()
+
     // Get client info for anti-cheat tracking
     const clientIp = request.headers.get('x-forwarded-for') ||
       request.headers.get('x-real-ip') ||
       'unknown'
-    const userAgent = request.headers.get('user-agent') || 'unknown'
+    // userAgent already declared above for desktop detection
     const ipHash = hashClientInfo(clientIp, userAgent)
 
     // Create config snapshot for validation later
@@ -207,6 +235,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         game_token: gameToken,
+        challenge: challenge, // For HMAC payload signing
         status: 'started',
         start_time: new Date().toISOString(),
         config_snapshot: configSnapshot,
@@ -229,6 +258,7 @@ export async function POST(request: NextRequest) {
       success: true,
       playsRemaining: isTest ? 999 : totalPlaysRemaining - 1,
       gameToken,
+      challenge, // Send challenge for HMAC payload signing
       serverTime: new Date().toISOString(),
       config: config.gameMechanics // Send game config to client
     })

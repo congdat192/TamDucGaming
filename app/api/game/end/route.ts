@@ -14,6 +14,8 @@ import {
   VALIDATION_CONSTANTS
 } from '@/lib/game/validateScore'
 import { getVietnamDate } from '@/lib/date'
+import { isDesktopBrowser, isDesktopWhitelisted } from '@/lib/userAgent'
+import { verifyHMAC } from '@/lib/crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +39,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 🚫 ANTI-CHEAT: Block desktop browsers (mobile-only game) - defense in depth
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    if (isDesktopBrowser(userAgent)) {
+      // Check if user is in whitelist (admins can test on desktop)
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', payload.userId)
+        .single()
+
+      if (!user || !isDesktopWhitelisted(user.email)) {
+        console.warn(`[ANTI-CHEAT] Desktop browser blocked at game-end for user ${payload.userId}`)
+        return NextResponse.json(
+          {
+            error: 'Game chỉ hỗ trợ trên điện thoại di động.',
+            errorCode: 'DESKTOP_NOT_ALLOWED'
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // Rate limiting: 5 requests per minute per user
     const rateLimitResult = rateLimit(`game-end:${payload.userId}`, {
       maxRequests: 5,
@@ -51,8 +75,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse request body - client chỉ gửi gameToken và score
-    const { gameToken, score } = await request.json()
+    // Parse request body - client gửi gameToken, score, duration, signature, và _h (honeypot)
+    const { gameToken, score, duration: clientDuration, signature, _h: honeypotValue } = await request.json()
+
+    // 🍯 HONEYPOT: Check if honeypot was triggered
+    if (honeypotValue !== undefined && honeypotValue !== 0) {
+      console.error(`[HONEYPOT] User ${payload.userId} triggered honeypot with value: ${honeypotValue}`)
+
+      // Mark session as invalid
+      if (gameToken) {
+        await supabaseAdmin
+          .from('game_sessions')
+          .update({
+            status: 'invalid',
+            suspicion_reason: `HONEYPOT TRIGGERED - Attempted to modify fake score variables: ${honeypotValue}`
+          })
+          .eq('game_token', gameToken)
+      }
+
+      // Ban user (optional - can be uncommented if needed)
+      // await supabaseAdmin
+      //   .from('users')
+      //   .update({
+      //     is_banned: true,
+      //     ban_reason: 'Honeypot triggered - script/hack detected'
+      //   })
+      //   .eq('id', payload.userId)
+
+      return NextResponse.json(
+        {
+          error: 'Phát hiện hành vi gian lận. Phiên chơi đã bị vô hiệu hóa.',
+          errorCode: 'HONEYPOT_TRIGGERED'
+        },
+        { status: 403 }
+      )
+    }
 
     // Validate basic input
     if (!gameToken) {
@@ -134,6 +191,49 @@ export async function POST(request: NextRequest) {
         { error: 'Phiên chơi không thuộc về bạn' },
         { status: 403 }
       )
+    }
+
+    // 🔐 PAYLOAD SIGNING: Verify HMAC signature
+    if (signature && session.challenge && clientDuration !== undefined) {
+      // Reconstruct payload: gameToken|score|duration
+      const payloadString = `${gameToken}|${clientScore}|${clientDuration}`
+
+      // Verify signature using challenge as key
+      const isValid = verifyHMAC(payloadString, session.challenge, signature)
+
+      if (!isValid) {
+        console.error(`[PAYLOAD SIGNING] Invalid signature for user ${session.user_id}, session ${gameToken}`)
+
+        // Mark session as invalid
+        await supabaseAdmin
+          .from('game_sessions')
+          .update({
+            status: 'invalid',
+            suspicion_reason: 'PAYLOAD SIGNING FAILED - Request signature verification failed'
+          })
+          .eq('game_token', gameToken)
+
+        return NextResponse.json(
+          {
+            error: 'Phát hiện hành vi gian lận. Chữ ký không hợp lệ.',
+            errorCode: 'SIGNATURE_VERIFICATION_FAILED'
+          },
+          { status: 403 }
+        )
+      }
+
+      console.log(`[PAYLOAD SIGNING] Signature verified successfully for session ${gameToken.substring(0, 8)}...`)
+    } else if (session.challenge) {
+      // Challenge exists but signature missing → suspicious
+      console.warn(`[PAYLOAD SIGNING] Missing signature for session ${gameToken} (challenge exists)`)
+
+      // Mark as suspicious but don't block (for backwards compatibility)
+      await supabaseAdmin
+        .from('game_sessions')
+        .update({
+          suspicion_reason: 'PAYLOAD SIGNING - Missing signature (possible old client)'
+        })
+        .eq('game_token', gameToken)
     }
 
     // Calculate server-side duration (using 'now' declared above)

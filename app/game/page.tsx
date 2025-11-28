@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR, { mutate } from 'swr'
-import GameCanvas from '@/components/GameCanvas'
+import GameCanvas, { getHoneypotValue } from '@/components/GameCanvas'
 import GameOverModal from '@/components/GameOverModal'
 import ProfileModal from '@/components/ProfileModal'
 import AddPhoneModal from '@/components/AddPhoneModal'
 import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
 import { getGameConfig } from '@/lib/gameConfig'
+import { hmacSHA256Client } from '@/lib/crypto'
 // import Snowflakes from '@/components/Snowflakes'
 // import { useBGM } from '@/hooks/useBGM'
 
@@ -50,6 +51,8 @@ export default function GamePage() {
   const [finalScore, setFinalScore] = useState(0)
   const [playsRemaining, setPlaysRemaining] = useState(0)
   const [gameToken, setGameToken] = useState<string | null>(null)
+  const [challenge, setChallenge] = useState<string | null>(null) // For HMAC payload signing
+  const [startTime, setStartTime] = useState<number>(0) // Track game start time for duration
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -145,6 +148,14 @@ export default function GamePage() {
         setGameToken(data.gameToken)
       }
 
+      // 🔐 PAYLOAD SIGNING: Store challenge for HMAC verification
+      if (data.challenge) {
+        setChallenge(data.challenge)
+      }
+
+      // Track start time for duration calculation
+      setStartTime(Date.now())
+
       setIsPlaying(true)
       setShowGameOver(false)
     } catch (error) {
@@ -169,11 +180,32 @@ export default function GamePage() {
     setIsPlaying(false)
 
     try {
+      // 🍯 HONEYPOT: Check if honeypot was modified
+      const honeypotValue = getHoneypotValue()
+
+      // 🔐 PAYLOAD SIGNING: Calculate duration and sign payload
+      const duration = Math.floor((Date.now() - startTime) / 1000) // Duration in seconds
+      let signature = ''
+
+      if (challenge && gameToken) {
+        // Create payload string: gameToken|score|duration
+        const payload = `${gameToken}|${score}|${duration}`
+
+        // Sign payload with challenge as key
+        signature = await hmacSHA256Client(payload, challenge)
+      }
+
       // Submit score and get available vouchers
       const res = await fetch('/api/game/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score, gameToken })
+        body: JSON.stringify({
+          score,
+          gameToken,
+          duration, // Send duration for validation
+          signature, // Send HMAC signature
+          _h: honeypotValue // Send honeypot value for server validation
+        })
       })
 
       const data = await res.json()
@@ -199,7 +231,7 @@ export default function GamePage() {
 
     // NEW LOGIC: Always show GameOverModal after game ends
     setShowGameOver(true)
-  }, [gameToken])
+  }, [gameToken, challenge, startTime])
 
   const handlePlayAgain = () => {
     setShowGameOver(false)

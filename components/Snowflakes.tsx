@@ -15,7 +15,7 @@ export default function Snowflakes() {
 
   useEffect(() => {
     const flakes: Snowflake[] = []
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 15; i++) {
       flakes.push({
         id: i,
         left: Math.random() * 100,
@@ -32,7 +32,7 @@ export default function Snowflakes() {
       {snowflakes.map((flake) => (
         <div
           key={flake.id}
-          className="snowflake"
+          className="snowflake will-change-transform"
           style={{
             left: `${flake.left}%`,
             fontSize: `${flake.size}em`,

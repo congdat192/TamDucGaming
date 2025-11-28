@@ -168,6 +168,17 @@ export default function TopMenu({
                         <span>Thể lệ & Giải thưởng</span>
                     </Link>
 
+                    <Link
+                        href="/policy"
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/policy'
+                            ? 'bg-yellow-400/20 text-yellow-400 font-bold'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            }`}
+                    >
+                        <span className="text-xl">📋</span>
+                        <span>Điều kiện & Điều khoản</span>
+                    </Link>
+
                     {/* Audio Toggle */}
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5">
                         <div className="flex items-center gap-3 text-white/80">

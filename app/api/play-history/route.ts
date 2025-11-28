@@ -41,7 +41,7 @@ export async function GET() {
       .from('game_sessions')
       .select(`
         id,
-        score,
+        validated_score,
         played_at,
         campaign_id,
         campaigns (
@@ -60,16 +60,16 @@ export async function GET() {
       )
     }
 
-    // Calculate stats
+    // Calculate stats using validated_score
     const totalGames = sessions?.length || 0
-    const totalScore = sessions?.reduce((sum, s) => sum + s.score, 0) || 0
-    const highestScore = sessions?.length ? Math.max(...sessions.map(s => s.score)) : 0
+    const totalScore = sessions?.reduce((sum, s) => sum + (s.validated_score || 0), 0) || 0
+    const highestScore = sessions?.length ? Math.max(...sessions.map(s => s.validated_score || 0)) : 0
     const averageScore = totalGames > 0 ? Math.round(totalScore / totalGames) : 0
 
     // Format sessions
     const formattedSessions = ((sessions || []) as unknown as GameSession[]).map(s => ({
       id: s.id,
-      score: s.score,
+      score: s.validated_score || 0, // Use validated_score here
       playedAt: s.played_at,
       campaignName: s.campaigns?.name || null
     }))

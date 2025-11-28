@@ -43,6 +43,7 @@ export default function GamePage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isStarting, setIsStarting] = useState(false) // Prevent duplicate start calls
   // Removed currentScore state to prevent re-renders
   const [showGameOver, setShowGameOver] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -110,8 +111,8 @@ export default function GamePage() {
   }
 
   const handleStartGame = async () => {
-    // Prevent starting if Game Over modal is open
-    if (showGameOver) return
+    // Prevent starting if Game Over modal is open or already starting
+    if (showGameOver || isStarting) return
 
     if (playsRemaining <= 0) {
       // Nếu chưa có SĐT → hiện modal thêm SĐT để nhận 3 lượt
@@ -125,6 +126,9 @@ export default function GamePage() {
       }
       return
     }
+
+    // Set starting state to prevent duplicate calls
+    setIsStarting(true)
 
     try {
       // Consume a play
@@ -160,6 +164,9 @@ export default function GamePage() {
       setShowGameOver(false)
     } catch (error) {
       console.error('Failed to start game:', error)
+    } finally {
+      // Reset starting state after 1 second debounce
+      setTimeout(() => setIsStarting(false), 1000)
     }
   }
 

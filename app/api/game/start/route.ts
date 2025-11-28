@@ -72,40 +72,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for too many open sessions (prevent session hoarding)
-    const { count: openSessionCount, error: openSessionError } = await supabaseAdmin
+
+    // 🛡️ ANTI-DUPLICATE: Check for active session in last 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+
+    const { data: recentSessions, error: recentSessionError } = await supabaseAdmin
       .from('game_sessions')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('user_id', payload.userId)
       .eq('status', 'started')
+      .gte('start_time', fiveMinutesAgo)
+      .order('start_time', { ascending: false })
+      .limit(1)
 
-    if (openSessionError) {
-      console.error('[GAME START] Error checking open sessions:', openSessionError)
+    if (recentSessionError) {
+      console.error('[GAME START] Error checking recent sessions:', recentSessionError)
     }
 
-    if (openSessionCount && openSessionCount >= MAX_OPEN_SESSIONS) {
-      console.warn(`[ANTI-CHEAT] User ${payload.userId} has ${openSessionCount} open sessions (max: ${MAX_OPEN_SESSIONS})`)
+    // If user has an active session in last 5 minutes, reject new game start
+    if (recentSessions && recentSessions.length > 0) {
+      const activeSession = recentSessions[0]
+      console.warn(`[ANTI-DUPLICATE] User ${payload.userId} has active session from ${activeSession.start_time}`)
+      return NextResponse.json(
+        {
+          error: 'Bạn đang có game đang chơi. Vui lòng hoàn thành game trước.',
+          errorCode: 'GAME_IN_PROGRESS'
+        },
+        { status: 400 }
+      )
+    }
 
-      // Auto-invalidate oldest open sessions to allow new game
-      const { data: oldSessions } = await supabaseAdmin
+    // 🧹 CLEANUP: Auto-invalidate stale sessions (>5 minutes old, never played)
+    const { data: staleSessions } = await supabaseAdmin
+      .from('game_sessions')
+      .select('id, start_time')
+      .eq('user_id', payload.userId)
+      .eq('status', 'started')
+      .lt('start_time', fiveMinutesAgo)
+
+    if (staleSessions && staleSessions.length > 0) {
+      await supabaseAdmin
         .from('game_sessions')
-        .select('id')
-        .eq('user_id', payload.userId)
-        .eq('status', 'started')
-        .order('start_time', { ascending: true })
-        .limit(openSessionCount - MAX_OPEN_SESSIONS + 1)
+        .update({
+          status: 'invalid',
+          suspicion_reason: 'Session timeout - never played (>5 minutes)'
+        })
+        .in('id', staleSessions.map(s => s.id))
 
-      if (oldSessions && oldSessions.length > 0) {
-        await supabaseAdmin
-          .from('game_sessions')
-          .update({
-            status: 'invalid',
-            suspicion_reason: 'Session expired - too many open sessions'
-          })
-          .in('id', oldSessions.map(s => s.id))
-
-        console.log(`[ANTI-CHEAT] Invalidated ${oldSessions.length} old sessions for user ${payload.userId}`)
-      }
+      console.log(`[CLEANUP] Invalidated ${staleSessions.length} stale sessions for user ${payload.userId}`)
     }
 
     // Get config from database

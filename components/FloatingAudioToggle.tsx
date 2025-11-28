@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { audioManager } from '@/lib/audio'
 
 export default function FloatingAudioToggle() {
-    const [isMuted, setIsMuted] = useState(false)
+    const [isMuted, setIsMuted] = useState(true)  // Default: muted
 
     useEffect(() => {
         // Initialize state

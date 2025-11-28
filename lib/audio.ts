@@ -13,8 +13,8 @@ export class AudioManager {
     private sfxPool: Map<string, HTMLAudioElement[]> = new Map()
     private bgmVolume: number = 0.7
     private sfxVolume: number = 0.7
-    private bgmMuted: boolean = false
-    private sfxMuted: boolean = false
+    private bgmMuted: boolean = true  // Default: muted
+    private sfxMuted: boolean = true  // Default: muted
     private listeners: Set<() => void> = new Set()
 
     private constructor() {
@@ -37,8 +37,8 @@ export class AudioManager {
             const parsed = JSON.parse(settings)
             this.bgmVolume = parsed.bgmVolume ?? 0.7
             this.sfxVolume = parsed.sfxVolume ?? 0.7
-            this.bgmMuted = parsed.bgmMuted ?? false
-            this.sfxMuted = parsed.sfxMuted ?? false
+            this.bgmMuted = parsed.bgmMuted ?? true  // Default: muted
+            this.sfxMuted = parsed.sfxMuted ?? true  // Default: muted
         }
     }
 

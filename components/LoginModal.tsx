@@ -155,17 +155,59 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-5">
               <div>
-                <label className="block text-white/90 mb-2 text-sm font-medium">Mã OTP</label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="123456"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all text-center tracking-[0.5em] text-lg"
-                  maxLength={6}
-                  required
-                  autoFocus
-                />
+                <label className="block text-white/90 mb-3 text-sm font-medium text-center">Mã OTP</label>
+                {/* 6 separate OTP input boxes */}
+                <div className="flex gap-2 justify-center">
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={otp[index] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '')
+                        if (value.length <= 1) {
+                          const newOtp = otp.split('')
+                          newOtp[index] = value
+                          const finalOtp = newOtp.join('')
+                          setOtp(finalOtp)
+
+                          // Auto-focus next input
+                          if (value && index < 5) {
+                            document.getElementById(`otp-${index + 1}`)?.focus()
+                          }
+
+                          // Auto-submit when all 6 digits entered
+                          if (finalOtp.length === 6 && index === 5) {
+                            setTimeout(() => {
+                              handleVerifyOTP(e as any)
+                            }, 100)
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Auto-focus previous on backspace
+                        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                          document.getElementById(`otp-${index - 1}`)?.focus()
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault()
+                        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+                        setOtp(pastedData)
+                        // Focus last filled input
+                        const lastIndex = Math.min(pastedData.length - 1, 5)
+                        setTimeout(() => {
+                          document.getElementById(`otp-${lastIndex}`)?.focus()
+                        }, 0)
+                      }}
+                      className="w-12 h-14 text-center text-2xl font-bold rounded-xl bg-white/5 border-2 border-white/20 text-white focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all"
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
               </div>
               <button
                 type="submit"

@@ -112,7 +112,7 @@ export default function ReferralPage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden pb-24 bg-[#0f172a]">
+    <main className="min-h-screen relative pb-24 bg-[#0f172a]">
       <Snowflakes />
 
       {/* Header */}
@@ -185,43 +185,60 @@ export default function ReferralPage() {
         </div>
 
         {/* Share Link Section */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-3">
           <button
-            onClick={handleShare}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-lg rounded-2xl hover:from-blue-500 hover:to-blue-400 transition-all transform active:scale-[0.98] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 btn-glow border border-blue-400/30 relative overflow-hidden group"
+            onClick={() => {
+              if (!data) return
+              // Use sharer.php for feed post
+              const url = encodeURIComponent(data.referralLink)
+              const quote = encodeURIComponent(`Chơi Santa Jump nhận quà 500K! Mã: ${data.referralCode}`)
+              window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, '_blank', 'width=600,height=400')
+            }}
+            className="py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            <div className="flex items-center gap-2 relative z-10">
-              {/* Messenger Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.791-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            Đăng Facebook
+          </button>
+        </div>
+
+        <button
+          onClick={handleShare}
+          className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg shadow-cyan-500/20"
+        >
+          <div className="flex -space-x-2 mr-1">
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center z-10 border border-blue-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0084FF" className="w-4 h-4">
                 <path d="M12 2C6.48 2 2 6.03 2 11C2 13.66 3.39 16.04 5.55 17.59C5.67 17.68 5.72 17.84 5.69 17.99L5.23 20.82C5.16 21.23 5.6 21.56 5.97 21.34L8.92 19.7C9.04 19.63 9.18 19.62 9.31 19.66C10.17 19.88 11.07 20 12 20C17.52 20 22 15.97 22 11C22 6.03 17.52 2 12 2ZM13.85 14.15L11.65 11.8L7.4 14.15L12.15 9L14.35 11.35L18.6 9L13.85 14.15Z" />
               </svg>
-              {/* Zalo Icon */}
-              <span className="bg-white text-blue-600 text-[10px] font-bold px-1 rounded">Zalo</span>
-              <span>Chia sẻ ngay</span>
             </div>
-          </button>
-
-          <div className="bg-black/20 rounded-2xl p-1.5 flex items-center gap-2 border border-white/10">
-            <div className="flex-1 px-4 py-3 text-white/60 text-xs truncate font-mono">
-              {data?.referralLink}
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center border border-blue-500">
+              <span className="text-[#0068FF] font-black text-[10px]">Z</span>
             </div>
-            <button
-              onClick={handleCopyLink}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${copied
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-white/10 text-white hover:bg-white/20'
-                }`}
-            >
-              {copied ? 'Đã Copy' : 'Copy Link'}
-            </button>
           </div>
+          Mời qua tin nhắn
+        </button>
+
+        <div className="bg-black/20 rounded-2xl p-1.5 flex items-center gap-2 border border-white/10">
+          <div className="flex-1 px-4 py-3 text-white/60 text-xs truncate font-mono">
+            {data?.referralLink}
+          </div>
+          <button
+            onClick={handleCopyLink}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${copied
+              ? 'bg-green-500/20 text-green-400'
+              : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+          >
+            {copied ? 'Đã Copy' : 'Copy Link'}
+          </button>
         </div>
 
         {/* How it works */}
         <div className="glass rounded-2xl p-6 border border-white/10">
           <h3 className="text-white font-bold mb-6 flex items-center gap-2 text-sm uppercase tracking-wide opacity-80">
-            <span>🎯</span> Cách nhận thưởng
+            <span>🎯</span> Cách nhận lượt chơi
           </h3>
 
           <div className="space-y-6 relative">
@@ -272,7 +289,7 @@ export default function ReferralPage() {
               <span className="text-xl">💡</span>
             </div>
             <div>
-              <p className="text-yellow-400 font-bold text-sm mb-0.5">Mẹo: Mời càng nhiều, thưởng càng lớn!</p>
+              <p className="text-yellow-400 font-bold text-sm mb-0.5">Mẹo: Mời càng nhiều, nhận lượt không giới hạn!</p>
               <p className="text-white/60 text-xs">
                 Không giới hạn số lượng. Mời 10 người = 50 lượt chơi bonus!
               </p>
@@ -322,7 +339,6 @@ export default function ReferralPage() {
             </div>
           )}
         </div>
-
       </div>
 
       {/* Profile Modal */}

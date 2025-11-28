@@ -262,7 +262,13 @@ export default function GiftSection({ user, isLoggedIn, onRedeemSuccess }: GiftS
                         <div className="text-center py-8">
                             <div className="text-4xl mb-2 opacity-50">🎟️</div>
                             <p className="text-white/70">Chưa có voucher nào</p>
-                            <p className="text-white/40 text-sm mt-1">Hãy quay lại sau nhé!</p>
+                            <p className="text-white/40 text-sm mt-1 mb-4">Hãy quay lại sau nhé!</p>
+                            <button
+                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-full text-sm transition-all shadow-lg shadow-yellow-500/20 active:scale-95"
+                            >
+                                🎮 Chơi game ngay
+                            </button>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -288,7 +294,13 @@ export default function GiftSection({ user, isLoggedIn, onRedeemSuccess }: GiftS
                         <div className="text-center py-8">
                             <div className="text-4xl mb-2 opacity-50">🎁</div>
                             <p className="text-white/70">Chưa có quà tặng nào</p>
-                            <p className="text-white/40 text-sm mt-1">Hãy quay lại sau nhé!</p>
+                            <p className="text-white/40 text-sm mt-1 mb-4">Hãy quay lại sau nhé!</p>
+                            <button
+                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-full text-sm transition-all shadow-lg shadow-yellow-500/20 active:scale-95"
+                            >
+                                🎮 Chơi game ngay
+                            </button>
                         </div>
                     ) : (
                         <div className="space-y-2">

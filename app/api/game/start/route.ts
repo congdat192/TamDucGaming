@@ -156,15 +156,9 @@ export async function POST(request: NextRequest) {
     let playsToday = user.plays_today
     let bonusPlays = user.bonus_plays
 
+    // Reset plays_today if it's a new day (will be handled in the single UPDATE below)
     if (user.last_play_date !== today) {
       playsToday = 0
-      await supabaseAdmin
-        .from('users')
-        .update({
-          plays_today: 0,
-          last_play_date: today
-        })
-        .eq('id', user.id)
     }
 
     // Check if user has plays remaining (using config from DB)
@@ -179,8 +173,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Consume a play (free plays first, then bonus plays) - SKIP FOR TEST ACCOUNTS
+    // ATOMIC UPDATE: Handle both new day reset AND play consumption in ONE query
     if (!isTest) {
       if (freePlaysRemaining > 0) {
+        // Consume a free play
         await supabaseAdmin
           .from('users')
           .update({
@@ -189,10 +185,12 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', user.id)
       } else {
+        // Consume a bonus play
         await supabaseAdmin
           .from('users')
           .update({
-            bonus_plays: bonusPlays - 1
+            bonus_plays: bonusPlays - 1,
+            last_play_date: today
           })
           .eq('id', user.id)
       }

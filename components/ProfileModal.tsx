@@ -166,11 +166,6 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-white/60 text-sm">Tổng số lượt chơi:</span>
-            <span className="text-white font-bold text-base">{user.total_games_played || 0}</span>
-          </div>
-
-          <div className="flex justify-between items-center">
             <span className="text-white/60 text-sm">Lượt chơi đang có:</span>
             <span className="text-green-400 font-bold text-base">
               {Math.max(0, config.maxPlaysPerDay - (user.plays_today || 0)) + user.bonus_plays}
@@ -178,8 +173,18 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
           </div>
 
           <div className="flex justify-between items-center">
+            <span className="text-white/60 text-sm">Đã chơi hôm nay:</span>
+            <span className="text-white font-bold text-base">{user.plays_today || 0}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-white/60 text-sm">Tổng số game đã chơi:</span>
+            <span className="text-blue-400 font-bold text-base">{user.total_games_played || 0}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
             <span className="text-white/60 text-sm">Tổng số lượt từ giới thiệu:</span>
-            <span className="text-blue-400 font-bold text-base">{user.total_referrals || 0}</span>
+            <span className="text-purple-400 font-bold text-base">{user.total_referrals || 0}</span>
           </div>
         </div>
 

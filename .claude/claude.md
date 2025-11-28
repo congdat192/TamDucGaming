@@ -470,18 +470,77 @@ tFirstPoint = (WIDTH - SANTA_X - obstacleWidth) / (obstacleSpeed * 60)
 
 ---
 
-## 9. Phone OTP System - VIHAT ZNS/SMS (Updated 2025-11-27)
+## 9. Phone OTP System - Supabase Edge Functions (Updated 2025-11-29)
 
 ### Overview
-Phone verification uses VIHAT (eSMS.vn) MultiChannel API with automatic fallback:
+Phone verification uses **Supabase Edge Functions** to call VIHAT (eSMS.vn) MultiChannel API.
+This architecture avoids needing VIHAT credentials on Vercel - credentials are hardcoded in Edge Functions.
+
 - **Primary:** ZNS (Zalo Notification Service) - cheaper, higher delivery rate
 - **Fallback:** SMS - when ZNS fails (user not on Zalo, etc.)
 
+### Architecture (NEW)
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CLIENT (Browser)                                                           │
+│    ├── AddPhoneModal.tsx     → User enters phone                           │
+│    └── ProfileModal.tsx      → User enters phone in profile                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  NEXT.JS API ROUTES (Vercel)                                                │
+│    ├── /api/auth/send-otp           → Calls Edge Function send_otp_phone   │
+│    └── /api/user/add-phone-bonus    → Calls Edge Function verify_otp_phone │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SUPABASE EDGE FUNCTIONS (Deno)                                             │
+│    ├── send_otp_phone      → Validate, Rate limit, Call VIHAT API          │
+│    └── verify_otp_phone    → Verify OTP from otp_login_vihat table         │
+│                                                                             │
+│    VIHAT credentials HARDCODED here (not in Vercel env)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  VIHAT MultiChannel API (eSMS.vn)                                           │
+│    POST https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/     │
+│    ├── Try ZNS (Zalo) first                                                 │
+│    └── Auto fallback to SMS                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Key Components
-- **`lib/vihat.ts`** - VIHAT MultiChannel API integration
-- **`app/api/auth/send-otp/route.ts`** - OTP sending with rate limits
-- **`app/api/auth/verify-otp/route.ts`** - OTP verification
-- **`app/api/user/add-phone-bonus/route.ts`** - Phone bonus with OTP verify
+
+#### Supabase Edge Functions (NEW)
+- **`supabase/functions/send_otp_phone/index.ts`**
+  - Validate Vietnamese phone format
+  - Rate limiting (5 OTP/phone/hour, 20 OTP/IP/hour)
+  - Daily cost cap (200,000 VND)
+  - Insert record to `otp_login_vihat` table
+  - Call VIHAT MultiChannel API
+  - VIHAT credentials hardcoded (no env needed on Vercel)
+
+- **`supabase/functions/verify_otp_phone/index.ts`**
+  - Find OTP record by phone
+  - Check max attempts (5 tries)
+  - Verify OTP code
+  - Mark as verified
+
+#### Next.js API Routes (Updated)
+- **`app/api/auth/send-otp/route.ts`**
+  - For EMAIL: Direct send via `lib/email.ts`
+  - For PHONE: Calls Edge Function `send_otp_phone`
+
+- **`app/api/user/add-phone-bonus/route.ts`**
+  - Calls Edge Function `verify_otp_phone`
+  - If verified, add bonus plays to user
+
+#### Frontend Components
+- **`components/AddPhoneModal.tsx`** - Full OTP flow with 2 steps
+- **`components/ProfileModal.tsx`** - OTP flow integrated in profile
 
 ### Database Tables (IMPORTANT!)
 ```
@@ -609,5 +668,5 @@ VIHAT_ZALO_OAID=xxx             # Zalo Official Account ID
 
 ---
 
-**Last Updated:** 2025-11-27 (Enhanced VIHAT ZNS/SMS with MultiChannel API, separate tables for email/phone OTP)
+**Last Updated:** 2025-11-29 (Migrated to Supabase Edge Functions for phone OTP, added OTP flow to ProfileModal)
 **Verified Against:** Actual codebase analysis, not assumptions

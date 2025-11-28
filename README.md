@@ -67,8 +67,11 @@ Santa Jump là web game sử dụng Next.js 14, cho phép người chơi:
 │   ├── useBGM.ts           # Background music
 │   └── useSFX.ts           # Sound effects
 ├── public/                  # Static assets (audio, images)
-├── supabase/                # Database migrations
-│   └── migrations/         # SQL migration files
+├── supabase/                # Supabase resources
+│   ├── migrations/         # SQL migration files
+│   └── functions/          # Supabase Edge Functions
+│       ├── send_otp_phone/     # Send phone OTP via VIHAT
+│       └── verify_otp_phone/   # Verify phone OTP
 ├── docs/                    # Documentation
 │   └── SECURITY_TEST.md    # Anti-cheat testing guide
 ├── scripts/                 # Utility scripts
@@ -200,18 +203,87 @@ console.log(data.c)  // Works!
 ### Build before push
 Always run `npm run build` locally before pushing to catch TypeScript errors early.
 
-## Phone OTP System (VIHAT ZNS/SMS)
+## Phone OTP System (VIHAT ZNS/SMS via Supabase Edge Functions)
 
 ### Overview
-Phone verification uses VIHAT (eSMS.vn) MultiChannel API with automatic fallback:
+Phone verification uses **Supabase Edge Functions** to call VIHAT (eSMS.vn) MultiChannel API.
+This architecture avoids needing VIHAT credentials on Vercel - credentials are hardcoded in Edge Functions.
+
 - **Primary:** ZNS (Zalo Notification Service) - cheaper, higher delivery rate
 - **Fallback:** SMS - when ZNS fails (user not on Zalo, etc.)
 
-### Architecture
+### Architecture (Updated 2025-11-29)
 ```
-User → /api/auth/send-otp → lib/vihat.ts → VIHAT MultiChannel API
-                                            ├── Try ZNS first
-                                            └── Auto fallback SMS
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CLIENT (Browser)                                                           │
+│    ├── AddPhoneModal.tsx     → User enters phone (2-step OTP flow)         │
+│    └── ProfileModal.tsx      → User enters phone in profile (OTP flow)     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  NEXT.JS API ROUTES (Vercel)                                                │
+│    ├── /api/auth/send-otp           → Calls Edge Function send_otp_phone   │
+│    └── /api/user/add-phone-bonus    → Calls Edge Function verify_otp_phone │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SUPABASE EDGE FUNCTIONS (Deno)                                             │
+│    ├── send_otp_phone      → Validate, Rate limit, Call VIHAT API          │
+│    └── verify_otp_phone    → Verify OTP from otp_login_vihat table         │
+│                                                                             │
+│    VIHAT credentials HARDCODED here (not in Vercel env)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  VIHAT MultiChannel API (eSMS.vn)                                           │
+│    POST https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/     │
+│    ├── Try ZNS (Zalo) first                                                 │
+│    └── Auto fallback to SMS                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Project Structure (Edge Functions)
+```
+supabase/
+├── functions/
+│   ├── send_otp_phone/
+│   │   └── index.ts         # Send OTP via VIHAT (ZNS → SMS)
+│   └── verify_otp_phone/
+│       └── index.ts         # Verify OTP from otp_login_vihat table
+```
+
+### Supabase Edge Functions
+
+#### send_otp_phone
+- Validate Vietnamese phone format
+- Rate limiting (5 OTP/phone/hour, 20 OTP/IP/hour)
+- Daily cost cap (200,000 VND)
+- Insert record to `otp_login_vihat` table
+- Call VIHAT MultiChannel API
+- **VIHAT credentials hardcoded** (no env needed on Vercel)
+
+#### verify_otp_phone
+- Find OTP record by phone
+- Check max attempts (5 tries)
+- Verify OTP code
+- Mark as verified
+
+### Deploying Edge Functions
+```bash
+# Option 1: Supabase CLI
+npm install -g supabase
+supabase login
+supabase functions deploy send_otp_phone
+supabase functions deploy verify_otp_phone
+
+# Option 2: Supabase Dashboard
+# 1. Go to Supabase Dashboard → Edge Functions
+# 2. Create new function
+# 3. Copy code from supabase/functions/{name}/index.ts
+# 4. Deploy
 ```
 
 ### Database Tables
@@ -227,6 +299,7 @@ minute INTEGER DEFAULT 5
 created_at TIMESTAMPTZ
 expires_at TIMESTAMPTZ
 verified BOOLEAN DEFAULT FALSE
+verified_at TIMESTAMPTZ
 attempts INTEGER DEFAULT 0
 ip_address VARCHAR(45)
 cost NUMERIC(10,2) DEFAULT 500
@@ -246,28 +319,53 @@ notes TEXT
 | Per IP/hour | 20 OTP max | Block bot spam |
 | Daily cost cap | 200,000 VND | Business cost protection |
 
-### VIHAT MultiChannel API
-```typescript
-// Endpoint
-POST https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/
+### OTP Entry Points (All use same Edge Functions)
+| Component | Trigger | Modal/Flow |
+|-----------|---------|------------|
+| GameOverModal | Out of plays, no phone | → AddPhoneModal (2-step OTP) |
+| game/page.tsx | Out of plays, no phone | → AddPhoneModal (2-step OTP) |
+| ProfileModal | No phone in profile | → Integrated OTP flow |
 
-// Payload
-{
-  ApiKey: "xxx",
-  SecretKey: "xxx",
-  Phone: "84xxxxxxxxx",
-  Channels: ['zalo', 'sms'],  // Priority order
-  Data: [
-    // ZNS config
-    { TempID: "478665", Params: [otp, "5"], OAID: "xxx" },
-    // SMS config (fallback)
-    { Content: "Ma xac thuc: xxx", Brandname: "MKTAMDUC" }
-  ]
-}
+### VIHAT Credentials (in Edge Functions)
+```typescript
+// supabase/functions/send_otp_phone/index.ts
+const VIHAT_CONFIG = {
+  API_KEY: "B70DE56E1A997DF6BB197CEEC85B7A",
+  SECRET_KEY: "FCD201C2BEE44E7FB641261801AB94",
+  BRANDNAME: "MKTAMDUC",
+  ZNS_TEMPLATE_ID: "478665",
+  OAID: "939629380721919913",
+  API_URL: "https://rest.esms.vn/MainService.svc/json/MultiChannelMessage/"
+};
 ```
 
 ### Key Files
-- `lib/vihat.ts` - VIHAT API integration
-- `app/api/auth/send-otp/route.ts` - OTP sending endpoint
-- `app/api/auth/verify-otp/route.ts` - OTP verification endpoint
-- `app/api/user/add-phone-bonus/route.ts` - Phone bonus with OTP verify
+| File | Description |
+|------|-------------|
+| `supabase/functions/send_otp_phone/index.ts` | Edge Function: Send OTP via VIHAT |
+| `supabase/functions/verify_otp_phone/index.ts` | Edge Function: Verify OTP |
+| `app/api/auth/send-otp/route.ts` | Next.js API: Calls send_otp_phone |
+| `app/api/user/add-phone-bonus/route.ts` | Next.js API: Calls verify_otp_phone |
+| `components/AddPhoneModal.tsx` | Frontend: 2-step OTP flow modal |
+| `components/ProfileModal.tsx` | Frontend: OTP flow in profile |
+
+### Flow Diagram
+```
+1. User enters phone → POST /api/auth/send-otp
+2. Next.js API → POST {SUPABASE_URL}/functions/v1/send_otp_phone
+3. Edge Function:
+   a. Validate phone format
+   b. Check rate limits
+   c. Generate OTP
+   d. Insert to otp_login_vihat
+   e. Call VIHAT API (ZNS → SMS fallback)
+4. User receives OTP via Zalo/SMS
+5. User enters OTP → POST /api/user/add-phone-bonus
+6. Next.js API → POST {SUPABASE_URL}/functions/v1/verify_otp_phone
+7. Edge Function:
+   a. Find OTP record
+   b. Check attempts (max 5)
+   c. Verify OTP
+   d. Mark verified=true
+8. Next.js API → Add bonus plays to user
+```

@@ -8,6 +8,10 @@ import { sendReferralBonusEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
+// Supabase Edge Function URL
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ========== OTP VERIFICATION (REQUIRED) - Use otp_login_vihat table ==========
+    // ========== OTP VERIFICATION (REQUIRED) - Call Edge Function ==========
     if (!otp) {
       return NextResponse.json(
         { error: 'Vui lòng nhập mã OTP' },
@@ -49,45 +53,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const now = new Date()
+    // Call Supabase Edge Function verify_otp_phone
+    try {
+      console.log(`[VERIFY OTP] Calling edge function for phone: ${phone}`)
 
-    // Find OTP record from otp_login_vihat table
-    const { data: otpRecord, error: otpError } = await supabaseAdmin
-      .from('otp_login_vihat')
-      .select('*')
-      .eq('phone', phone)
-      .eq('otp_code', otp)
-      .eq('verified', false)
-      .gt('expires_at', now.toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (otpError || !otpRecord) {
-      return NextResponse.json(
-        { error: 'Mã OTP không đúng hoặc đã hết hạn' },
-        { status: 400 }
-      )
-    }
-
-    // Check max attempts (5 attempts max)
-    if (otpRecord.attempts >= 5) {
-      return NextResponse.json(
-        { error: 'Đã thử sai 5 lần. Vui lòng yêu cầu mã OTP mới' },
-        { status: 400 }
-      )
-    }
-
-    // Mark OTP as verified
-    await supabaseAdmin
-      .from('otp_login_vihat')
-      .update({
-        verified: true,
-        verified_at: now.toISOString()
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/verify_otp_phone`
+      const verifyResponse = await fetch(edgeFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ phone, otp })
       })
-      .eq('id', otpRecord.id)
 
-    console.log(`[OTP VERIFIED] Record ${otpRecord.id} for phone ${phone}`)
+      const verifyResult = await verifyResponse.json()
+
+      if (!verifyResponse.ok) {
+        console.error(`[VERIFY OTP] Edge function error:`, verifyResult)
+        return NextResponse.json(
+          { error: verifyResult.error || 'Mã OTP không đúng hoặc đã hết hạn' },
+          { status: verifyResponse.status }
+        )
+      }
+
+      console.log(`[VERIFY OTP] Edge function success:`, verifyResult)
+
+    } catch (verifyError) {
+      console.error('[VERIFY OTP] Failed to call edge function:', verifyError)
+      return NextResponse.json(
+        { error: 'Không thể xác thực OTP. Vui lòng thử lại.' },
+        { status: 500 }
+      )
+    }
     // ========== END OTP VERIFICATION ==========
 
     // Get current user

@@ -23,21 +23,37 @@ interface ProfileModalProps {
   onLogout?: () => void
 }
 
+type PhoneStep = 'input' | 'otp'
+
 export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLogout }: ProfileModalProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('input')
+  const [countdown, setCountdown] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [config, setConfig] = useState({ maxPlaysPerDay: 3 }) // Default fallback
+  const [config, setConfig] = useState({ maxPlaysPerDay: 3, bonusPlaysForPhone: 4 }) // Default fallback
 
   useEffect(() => {
     // Fetch public config
     fetch('/api/config/public')
       .then(res => res.json())
-      .then(data => setConfig(data.config))
+      .then(data => setConfig({
+        maxPlaysPerDay: data.config?.maxPlaysPerDay || 3,
+        bonusPlaysForPhone: data.config?.bonusPlaysForPhone || 4
+      }))
       .catch(err => console.error('Failed to load config:', err))
   }, [])
+
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [countdown])
 
   useEffect(() => {
     if (user) {
@@ -51,6 +67,9 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
     if (isOpen) {
       setError('')
       setSuccess('')
+      setPhoneStep('input')
+      setOtp('')
+      setCountdown(0)
     }
   }, [isOpen])
 
@@ -84,10 +103,45 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
     }
   }
 
-  const handleAddPhone = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Step 1: Send OTP to phone
+  const handleSendOTP = async () => {
     if (!phone || phone.length < 10) {
       setError('Số điện thoại không hợp lệ (cần 10 số)')
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể gửi OTP')
+      }
+
+      // Move to OTP step
+      setPhoneStep('otp')
+      setCountdown(60)
+      setSuccess('Mã OTP đã được gửi đến số điện thoại của bạn')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Step 2: Verify OTP and add phone bonus
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 4) {
+      setError('Vui lòng nhập mã OTP')
       return
     }
 
@@ -99,22 +153,30 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
       const res = await fetch('/api/user/add-phone-bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, otp })
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Không thể cập nhật')
+        throw new Error(data.error || 'Không thể xác thực OTP')
       }
 
       setSuccess(`🎉 ${data.message}`)
+      setPhoneStep('input')
+      setOtp('')
       onUserUpdate()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (countdown > 0) return
+    await handleSendOTP()
   }
 
   // Check if user needs to add phone (logged in via email but no phone)
@@ -236,24 +298,80 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
                 </div>
                 {canAddPhone && (
                   <span className="text-yellow-400 animate-pulse flex items-center gap-1">
-                    <span>🎁</span> +3 lượt
+                    <span>🎁</span> +{config.bonusPlaysForPhone} lượt
                   </span>
                 )}
               </label>
 
               {canAddPhone ? (
                 <div className="space-y-2">
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Nhập số điện thoại (10 số)"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-yellow-400/30 text-white placeholder-white/30 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all text-sm focus:shadow-[0_0_15px_rgba(250,204,21,0.1)]"
-                    maxLength={10}
-                  />
-                  <p className="text-white/40 text-xs pl-1">
-                    * Cập nhật SĐT để bảo vệ tài khoản và nhận quà.
-                  </p>
+                  {phoneStep === 'input' ? (
+                    <>
+                      <div className="flex gap-2">
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="Nhập số điện thoại (10 số)"
+                          className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-yellow-400/30 text-white placeholder-white/30 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all text-sm focus:shadow-[0_0_15px_rgba(250,204,21,0.1)]"
+                          maxLength={10}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendOTP}
+                          disabled={loading || phone.length < 10}
+                          className="px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-bold rounded-xl hover:from-yellow-300 hover:to-yellow-400 disabled:opacity-50 transition-all text-sm whitespace-nowrap"
+                        >
+                          {loading ? '...' : 'Gửi OTP'}
+                        </button>
+                      </div>
+                      <p className="text-white/40 text-xs pl-1">
+                        * Xác thực SĐT qua OTP để nhận +{config.bonusPlaysForPhone} lượt chơi
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white/60 text-xs mb-2">
+                        Mã OTP đã gửi đến <span className="text-yellow-400 font-medium">{phone}</span>
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                          placeholder="Nhập mã OTP"
+                          className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-yellow-400/30 text-white placeholder-white/30 focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all text-lg text-center tracking-[0.3em] font-mono"
+                          maxLength={6}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyOTP}
+                          disabled={loading || otp.length < 4}
+                          className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-xl hover:from-green-400 hover:to-green-500 disabled:opacity-50 transition-all text-sm whitespace-nowrap"
+                        >
+                          {loading ? '...' : 'Xác thực'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-2">
+                        <button
+                          type="button"
+                          onClick={() => { setPhoneStep('input'); setOtp(''); setError(''); }}
+                          className="text-white/50 hover:text-white/80 transition-colors"
+                        >
+                          ← Đổi số
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResendOTP}
+                          disabled={countdown > 0 || loading}
+                          className="text-yellow-400 hover:text-yellow-300 disabled:text-white/30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {countdown > 0 ? `Gửi lại (${countdown}s)` : 'Gửi lại OTP'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <input
@@ -265,28 +383,17 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-2 space-y-3 flex gap-3">
-              {canAddPhone && phone.length >= 10 && (
-                <button
-                  type="button"
-                  onClick={handleAddPhone}
-                  disabled={loading}
-                  className="flex-1 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-bold rounded-xl hover:from-yellow-300 hover:to-yellow-400 disabled:opacity-50 transition-all transform active:scale-95 shadow-lg shadow-yellow-400/20 text-sm"
-                >
-                  {loading ? 'ĐANG XỬ LÝ...' : '🎁 LƯU SĐT'}
-                </button>
-              )}
-
+            {/* Action Buttons - Only for name update */}
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={loading || name === user.name || !name.trim()}
-                className={`flex-1 py-3 font-bold rounded-xl transition-all active:scale-95 border text-sm ${name !== user.name && name.trim()
+                className={`w-full py-3 font-bold rounded-xl transition-all active:scale-95 border text-sm ${name !== user.name && name.trim()
                   ? 'bg-green-600 border-green-600 text-white hover:bg-green-700 shadow-[0_0_15px_rgba(22,163,74,0.4)]'
                   : 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed'
                   }`}
               >
-                {loading ? 'ĐANG LƯU...' : 'LƯU THAY ĐỔI'}
+                {loading ? 'ĐANG LƯU...' : 'LƯU TÊN'}
               </button>
             </div>
           </form>

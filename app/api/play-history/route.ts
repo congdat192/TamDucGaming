@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 interface GameSession {
   id: string
   score: number
+  validated_score?: number
   played_at: string
   campaign_id: string | null
   campaigns?: {

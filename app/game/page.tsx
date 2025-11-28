@@ -288,22 +288,19 @@ export default function GamePage() {
 
   // Use ref to track current gameToken for cleanup
   const gameTokenRef = useRef<string | null>(null)
-  const isPlayingRef = useRef(false)
 
   useEffect(() => {
     gameTokenRef.current = gameToken
-    isPlayingRef.current = isPlaying
-  }, [gameToken, isPlaying])
+  }, [gameToken])
 
-  // Cleanup: Abandon session if user leaves page while game is in progress
+  // Cleanup: Abandon session if user leaves page with active gameToken
   useEffect(() => {
     return () => {
-      // Only abandon if there's an active game token (game started but not ended)
-      // Use ref values to get the latest state at unmount time
+      // If there's a gameToken, it means game was started but not properly ended
+      // (successful game end clears gameToken, so if it's still here, something went wrong)
       const currentToken = gameTokenRef.current
-      const currentlyPlaying = isPlayingRef.current
 
-      if (currentToken && currentlyPlaying) {
+      if (currentToken) {
         fetch('/api/game/abandon', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

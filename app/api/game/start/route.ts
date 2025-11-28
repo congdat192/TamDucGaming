@@ -179,7 +179,10 @@ export async function POST(request: NextRequest) {
     const freePlaysRemaining = config.maxPlaysPerDay - playsToday
     const totalPlaysRemaining = freePlaysRemaining + bonusPlays
 
+    console.log(`[GAME START CHECK] User: ${user.email}, PlaysToday: ${playsToday}, Max: ${config.maxPlaysPerDay}, Free: ${freePlaysRemaining}, Bonus: ${bonusPlays}, Total: ${totalPlaysRemaining}, IsTest: ${isTest}`)
+
     if (!isTest && totalPlaysRemaining <= 0) {
+      console.log(`[GAME START BLOCKED] User ${user.email} out of plays`)
       return NextResponse.json(
         { error: 'Bạn đã hết lượt chơi. Giới thiệu bạn bè để có thêm lượt!' },
         { status: 400 }

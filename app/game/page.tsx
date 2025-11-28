@@ -191,7 +191,6 @@ export default function GamePage() {
   const [totalScore, setTotalScore] = useState(0)
 
   const handleGameOver = useCallback(async (score: number) => {
-    console.log('[GAME OVER] Called with score:', score, 'gameToken:', gameToken)
     setIsPlaying(false)
 
     try {
@@ -210,8 +209,6 @@ export default function GamePage() {
         signature = await hmacSHA256Client(payload, challenge)
       }
 
-      console.log('[GAME OVER] Calling /api/game/end with:', { score, gameToken, duration })
-
       // Submit score and get available vouchers
       const res = await fetch('/api/game/end', {
         method: 'POST',
@@ -226,7 +223,6 @@ export default function GamePage() {
       })
 
       const data = await res.json()
-      console.log('[GAME OVER] API response:', { ok: res.ok, data })
 
       // Use validated score from server (not client score)
       // Server validates and may adjust the score
@@ -247,13 +243,12 @@ export default function GamePage() {
 
       // Clear gameToken ONLY after successful game end
       // This ensures cleanup can distinguish between completed and abandoned sessions
-      console.log('[GAME OVER] Clearing gameToken')
       setGameToken(null)
 
       // Refresh user data in background
       refreshAuth()
     } catch (error) {
-      console.error('[GAME OVER] Error:', error)
+      console.error('Failed to submit score:', error)
       setFinalScore(score) // fallback on error
       // Note: gameToken NOT cleared on error, so cleanup will abandon the session
     }

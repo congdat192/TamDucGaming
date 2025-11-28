@@ -22,8 +22,8 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
   // 🛡️ Anti-Cheat Protection
   const { status: antiCheatStatus, verifyTouch } = useAntiCheat({
     requireTouch: true,
-    blockDevTools: false, // Disabled for testing
-    checkFingerprint: false, // Disabled to prevent console spam
+    blockDevTools: true,
+    checkFingerprint: true,
     onViolation: (reason) => {
       console.warn('[ANTI-CHEAT VIOLATION]', reason)
     }

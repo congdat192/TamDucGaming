@@ -46,10 +46,7 @@ export function isDesktopBrowser(userAgent: string | null): boolean {
  */
 export const DESKTOP_WHITELIST_EMAILS = [
   'congdat192@gmail.com',
-  'crazyloop2509@gmail.com',
-  // Test accounts for debugging
-  'test9@gmail.com',
-  'test10@gmail.com'
+  'crazyloop2509@gmail.com'
 ]
 
 /**

@@ -245,6 +245,9 @@ export default function GamePage() {
       setFinalScore(score) // fallback on error
     }
 
+    // Clear gameToken since this session is now completed
+    setGameToken(null)
+
     // NEW LOGIC: Always show GameOverModal after game ends
     setShowGameOver(true)
   }, [gameToken, challenge, startTime])
@@ -274,8 +277,24 @@ export default function GamePage() {
     setShowGameOver(false)
     setIsPlaying(false)
     setIsStarting(false)
+    setGameToken(null)
     router.push('/')
   }
+
+  // Cleanup: Abandon session if user leaves page while game is in progress
+  useEffect(() => {
+    return () => {
+      // Only abandon if there's an active game token (game started but not ended)
+      if (gameToken && isPlaying) {
+        fetch('/api/game/abandon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameToken }),
+          keepalive: true // Ensure request completes even if page is unloading
+        }).catch(err => console.error('Failed to abandon session:', err))
+      }
+    }
+  }, [gameToken, isPlaying])
 
   if (isLoading) {
     return (

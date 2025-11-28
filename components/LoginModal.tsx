@@ -52,8 +52,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
     }
   }
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const verifyOtp = async (otpValue: string) => {
     setError('')
     setLoading(true)
 
@@ -61,7 +60,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, referralCode })
+        body: JSON.stringify({ email, otp: otpValue, referralCode })
       })
 
       const data = await res.json()
@@ -77,6 +76,11 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleVerifyOTP = (e: React.FormEvent) => {
+    e.preventDefault()
+    verifyOtp(otp)
   }
 
   const handleClose = () => {
@@ -190,13 +194,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
 
                           // Auto submit if full
                           if (finalOtp.length === 6) {
-                            setTimeout(() => {
-                              // We need to pass a synthetic event or just call the function if it doesn't use the event
-                              // handleVerifyOTP expects FormEvent, but we can just call it
-                              // However, handleVerifyOTP uses e.preventDefault(), so we need a mock
-                              const mockEvent = { preventDefault: () => { } } as React.FormEvent
-                              handleVerifyOTP(mockEvent)
-                            }, 100)
+                            verifyOtp(finalOtp)
                           }
                         } else {
                           // Single digit logic (existing)
@@ -211,10 +209,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
                           }
 
                           if (finalOtp.length === 6 && index === 5) {
-                            setTimeout(() => {
-                              const mockEvent = { preventDefault: () => { } } as React.FormEvent
-                              handleVerifyOTP(mockEvent)
-                            }, 100)
+                            verifyOtp(finalOtp)
                           }
                         }
                       }}

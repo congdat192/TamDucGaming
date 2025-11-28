@@ -157,10 +157,8 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
 
 
   // Step 2: Verify OTP and add phone bonus
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (otp.length < 4) {
+  const verifyOtp = async (otpValue: string) => {
+    if (otpValue.length < 4) {
       setError('Vui lòng nhập mã OTP')
       return
     }
@@ -173,7 +171,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
       const res = await fetch('/api/user/add-phone-bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone, otp: otpValue })
       })
 
       const data = await res.json()
@@ -189,6 +187,11 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleVerifyOTP = (e: React.FormEvent) => {
+    e.preventDefault()
+    verifyOtp(otp)
   }
 
   // Resend OTP
@@ -334,11 +337,17 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
                           }
                         })
 
-                        setOtp(newOtp.join('').slice(0, 6))
+                        const finalOtp = newOtp.join('').slice(0, 6)
+                        setOtp(finalOtp)
 
                         // Focus last filled
                         const nextIndex = Math.min(index + pastedOtp.length, 5)
                         otpInputs.current[nextIndex]?.focus()
+
+                        // Auto submit if full
+                        if (finalOtp.length === 6) {
+                          verifyOtp(finalOtp)
+                        }
                       } else {
                         // Single digit
                         handleOtpChange(index, val)

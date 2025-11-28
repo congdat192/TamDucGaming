@@ -421,6 +421,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Calculate remaining plays for client to display immediately
+    const config = await getGameConfig()
+    const playsRemaining = Math.max(0, config.maxPlaysPerDay - user.plays_today) + user.bonus_plays
+
     // Return validated score to client
     // Client can show validated_score on scoreboard
     // Don't tell client if they were flagged - just show the validated score
@@ -428,6 +432,7 @@ export async function POST(request: NextRequest) {
       success: true,
       score: validatedScore, // Return validated score (not client score)
       totalScore: newTotalScore,
+      playsRemaining, // ✅ Return updated plays remaining
       availableVouchers,
       // Debug info (có thể bỏ trong production)
       ...(process.env.NODE_ENV === 'development' && {

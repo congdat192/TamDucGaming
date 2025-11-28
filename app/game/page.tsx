@@ -233,7 +233,12 @@ export default function GamePage() {
         setTotalScore(data.totalScore)
       }
 
-      // Refresh user data
+      // ✅ Update playsRemaining immediately from server response
+      if (data.playsRemaining !== undefined) {
+        setPlaysRemaining(data.playsRemaining)
+      }
+
+      // Refresh user data in background
       refreshAuth()
     } catch (error) {
       console.error('Failed to submit score:', error)
@@ -265,6 +270,10 @@ export default function GamePage() {
   }
 
   const handleGoHome = () => {
+    // Reset all states before navigation
+    setShowGameOver(false)
+    setIsPlaying(false)
+    setIsStarting(false)
     router.push('/')
   }
 

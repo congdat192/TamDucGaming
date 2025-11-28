@@ -124,7 +124,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
   const displayName = user.name || (user.email ? user.email.split('@')[0] : user.phone) || 'Người chơi'
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="relative bg-[#0f172a]/90 backdrop-blur-md rounded-3xl p-6 max-w-md w-full border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}

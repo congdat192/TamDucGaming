@@ -99,7 +99,7 @@ function HomeContent() {
   const handleLoginSuccess = () => {
     setIsLoggedIn(true)
     checkAuth()
-    router.push('/')
+    // router.push('/') // Removed to prevent state reset/remount
   }
 
   const handleLogout = async () => {

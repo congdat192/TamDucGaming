@@ -3,15 +3,20 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import LoginModal from '@/components/LoginModal'
-import ProfileModal from '@/components/ProfileModal'
+import dynamic from 'next/dynamic'
 import BottomNavigation from '@/components/BottomNavigation'
 import FloatingAudioToggle from '@/components/FloatingAudioToggle'
-import Snowflakes from '@/components/Snowflakes'
 import { useBGM } from '@/hooks/useBGM'
 import TopMenu from '@/components/TopMenu'
 import NotificationBell from '@/components/NotificationBell'
-import GiftSection from '@/components/GiftSection'
+
+// Dynamic imports for heavy components
+const LoginModal = dynamic(() => import('@/components/LoginModal'), { ssr: false })
+const ProfileModal = dynamic(() => import('@/components/ProfileModal'), { ssr: false })
+const GiftSection = dynamic(() => import('@/components/GiftSection'), {
+  loading: () => <div className="h-96 flex items-center justify-center text-white/50">Đang tải quà tặng...</div>
+})
+const Snowflakes = dynamic(() => import('@/components/Snowflakes'), { ssr: false })
 
 function HomeContent() {
   const router = useRouter()

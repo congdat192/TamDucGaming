@@ -55,6 +55,7 @@ export default function GamePage() {
   const [challenge, setChallenge] = useState<string | null>(null) // For HMAC payload signing
   const [startTime, setStartTime] = useState<number>(0) // Track game start time for duration
   const [error, setError] = useState<string | null>(null) // Error message for non-blocking display
+  const [bonusPlaysForPhone, setBonusPlaysForPhone] = useState(4) // Bonus plays for adding phone
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -100,6 +101,9 @@ export default function GamePage() {
     const bonusPlays = userData.bonus_plays
     const remaining = Math.max(0, maxPlaysPerDay - usedPlays) + bonusPlays
     setPlaysRemaining(remaining)
+
+    // Store bonusPlaysForPhone for display
+    setBonusPlaysForPhone(config.bonusPlaysForPhone)
   }
 
   const handleLogout = async () => {
@@ -362,9 +366,6 @@ export default function GamePage() {
         {/* Instructions */}
         {!isPlaying && !showGameOver && (
           <div className="mt-6 text-center">
-            <p className="text-white/70 text-sm mb-4">
-              Tap hoặc nhấn Space để bắt đầu và điều khiển Santa nhảy
-            </p>
 
             {playsRemaining <= 0 && (
               <div className="bg-red-500/20 border border-red-500 rounded-xl p-4 max-w-sm">
@@ -374,7 +375,7 @@ export default function GamePage() {
                     onClick={() => setShowAddPhone(true)}
                     className="text-yellow-400 underline text-sm font-semibold"
                   >
-                    🎁 Cập nhật SĐT để nhận 3 lượt chơi →
+                    🎁 Cập nhật SĐT để nhận {bonusPlaysForPhone} lượt chơi →
                   </button>
                 ) : (
                   <button

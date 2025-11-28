@@ -4,10 +4,15 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-    const email = 'testhack3@matkinhtamduc.com'
-
     try {
-        // 1. Get user data
+        const { searchParams } = new URL(request.url)
+        const email = searchParams.get('email')
+
+        if (!email) {
+            return NextResponse.json({ error: 'Email required' }, { status: 400 })
+        }
+
+        // Get user
         const { data: user, error: userError } = await supabaseAdmin
             .from('users')
             .select('*')

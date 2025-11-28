@@ -193,7 +193,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="glass rounded-3xl p-8 max-w-sm w-full border border-white/10 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in duration-300">
 
         {/* Decorative elements */}

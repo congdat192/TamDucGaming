@@ -194,8 +194,11 @@ export default function GamePage() {
 
   const [totalScore, setTotalScore] = useState(0)
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const handleGameOver = useCallback(async (score: number) => {
     setIsPlaying(false)
+    setIsSubmitting(true) // Start submitting state
 
     try {
       // 🍯 HONEYPOT: Check if honeypot was modified
@@ -255,6 +258,8 @@ export default function GamePage() {
       console.error('Failed to submit score:', error)
       setFinalScore(score) // fallback on error
       // Note: gameToken NOT cleared on error, so cleanup will abandon the session
+    } finally {
+      setIsSubmitting(false) // End submitting state
     }
 
     // NEW LOGIC: Always show GameOverModal after game ends
@@ -361,6 +366,7 @@ export default function GamePage() {
           isPlaying={isPlaying}
           onStartGame={handleStartGame}
           playsRemaining={playsRemaining}
+          isSubmitting={isSubmitting}
         />
 
         {/* Instructions */}

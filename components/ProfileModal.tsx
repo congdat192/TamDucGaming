@@ -118,7 +118,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, checkUnique: true })
       })
 
       const data = await res.json()
@@ -332,7 +332,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUserUpdate, onLo
                   ) : (
                     <>
                       <p className="text-white/60 text-xs mb-2">
-                        Mã OTP đã gửi đến <span className="text-yellow-400 font-medium">{phone}</span>
+                        Mã OTP sẽ được gửi đến <span className="font-bold text-blue-400">ZALO</span> hoặc <span className="font-bold text-green-400">SMS</span> của số <span className="text-yellow-400 font-medium">{phone}</span>
                       </p>
                       <div className="flex gap-2">
                         <input

@@ -44,7 +44,7 @@ function isValidVietnamesePhone(phone: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, email } = await request.json()
+    const { phone, email, checkUnique } = await request.json()
 
     const isEmailLogin = !!email
     const clientIP = getClientIP(request)
@@ -57,6 +57,22 @@ export async function POST(request: NextRequest) {
           { error: 'Số điện thoại không hợp lệ' },
           { status: 400 }
         )
+      }
+
+      // Check if phone already exists (for linking phone)
+      if (checkUnique) {
+        const { data: existingUser } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('phone', phone)
+          .single()
+
+        if (existingUser) {
+          return NextResponse.json(
+            { error: 'Số điện thoại này đã được sử dụng bởi tài khoản khác' },
+            { status: 400 }
+          )
+        }
       }
 
       // Validate Vietnamese phone format

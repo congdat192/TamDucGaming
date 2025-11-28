@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface ModalContentData {
   title: string
@@ -76,6 +76,47 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
     }
   }, [countdown])
 
+  // OTP Input Logic
+  const otpInputs = useRef<(HTMLInputElement | null)[]>([])
+
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (!/^\d*$/.test(value)) return
+
+    const newOtp = otp.split('')
+    newOtp[index] = value
+    const newOtpStr = newOtp.join('').slice(0, 6)
+    setOtp(newOtpStr)
+
+    // Auto focus next input if value entered
+    if (value && index < 5) {
+      otpInputs.current[index + 1]?.focus()
+    }
+  }
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        // If current is empty, move back and delete previous
+        const newOtp = otp.split('')
+        newOtp[index - 1] = ''
+        setOtp(newOtp.join(''))
+        otpInputs.current[index - 1]?.focus()
+      }
+    }
+  }
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (pastedData) {
+      setOtp(pastedData)
+      // Focus last filled input or first empty
+      const nextIndex = Math.min(pastedData.length, 5)
+      otpInputs.current[nextIndex]?.focus()
+    }
+  }
+
   if (!isOpen || !modalContent) return null
 
   // Step 1: Send OTP to phone
@@ -94,7 +135,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, checkUnique: true })
       })
 
       const data = await res.json()
@@ -112,6 +153,8 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
       setLoading(false)
     }
   }
+
+
 
   // Step 2: Verify OTP and add phone bonus
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -159,7 +202,7 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, checkUnique: true })
       })
 
       const data = await res.json()
@@ -262,20 +305,26 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
           {step === 'otp' && (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               <p className="text-white/60 text-sm mb-2">
-                Mã OTP đã được gửi đến <span className="text-yellow-400 font-medium">{phone}</span>
+                Mã OTP sẽ được gửi đến <span className="font-bold text-blue-400">ZALO</span> hoặc <span className="font-bold text-green-400">SMS</span> của số <span className="text-yellow-400 font-medium">{phone}</span>
               </p>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Nhập mã OTP..."
-                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-yellow-400 focus:bg-white/10 focus:outline-none text-2xl text-center tracking-[0.5em] font-mono transition-all"
-                  maxLength={6}
-                  required
-                  autoFocus
-                />
+              <div className="flex gap-2 justify-center mb-6">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <input
+                    key={index}
+                    ref={(el) => {
+                      if (el) otpInputs.current[index] = el
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={otp[index] || ''}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={handleOtpPaste}
+                    className="w-10 h-12 sm:w-12 sm:h-14 rounded-lg bg-white/5 border border-white/20 text-white text-center text-xl font-bold focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all"
+                  />
+                ))}
               </div>
 
               <button

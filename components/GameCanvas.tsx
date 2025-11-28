@@ -10,9 +10,10 @@ interface GameCanvasProps {
   isPlaying: boolean
   onStartGame: () => void
   playsRemaining: number
+  isSubmitting?: boolean
 }
 
-function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame, playsRemaining }: GameCanvasProps) {
+function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame, playsRemaining, isSubmitting = false }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<SantaJumpGame | null>(null)
   const [currentScore, setCurrentScore] = useState(0)
@@ -180,7 +181,7 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
       )}
 
       {/* Start Overlay - pointer-events-none vì parent div xử lý touch */}
-      {!isPlaying && (
+      {!isPlaying && !isSubmitting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl pointer-events-none">
           <div className="text-center">
             <div className="text-6xl mb-4 animate-bounce">🎅</div>
@@ -222,6 +223,16 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
                 🎮 Bắt đầu chơi
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submitting Overlay */}
+      {isSubmitting && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl pointer-events-none z-50">
+          <div className="text-center">
+            <div className="animate-spin text-4xl mb-2">⏳</div>
+            <p className="text-white font-bold">Đang tính điểm...</p>
           </div>
         </div>
       )}

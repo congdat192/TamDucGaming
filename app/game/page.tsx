@@ -139,6 +139,8 @@ export default function GamePage() {
       const data = await res.json()
 
       if (!res.ok) {
+        // Reset isPlaying on error so user can try again
+        setIsPlaying(false)
         alert(data.error || 'Không thể bắt đầu game')
         return
       }
@@ -163,6 +165,8 @@ export default function GamePage() {
       setIsPlaying(true)
       setShowGameOver(false)
     } catch (error) {
+      // Reset isPlaying on error so user can try again
+      setIsPlaying(false)
       console.error('Failed to start game:', error)
     } finally {
       // Reset starting state after 1 second debounce
@@ -253,6 +257,9 @@ export default function GamePage() {
       }
       return
     }
+
+    // Set isPlaying immediately to prevent duplicate taps during API call
+    setIsPlaying(true)
 
     handleStartGame()
   }

@@ -164,31 +164,61 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
                       id={`otp-${index}`}
                       type="text"
                       inputMode="numeric"
-                      maxLength={1}
+                      autoComplete={index === 0 ? "one-time-code" : "off"}
                       value={otp[index] || ''}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '')
-                        if (value.length <= 1) {
+                        const val = e.target.value
+                        if (!/^\d*$/.test(val)) return
+
+                        if (val.length > 1) {
+                          // Handle autofill
+                          const pastedOtp = val.slice(0, 6).split('')
+                          const newOtp = otp.split('')
+
+                          pastedOtp.forEach((digit, i) => {
+                            if (index + i < 6) {
+                              newOtp[index + i] = digit
+                            }
+                          })
+
+                          const finalOtp = newOtp.join('').slice(0, 6)
+                          setOtp(finalOtp)
+
+                          // Focus last filled
+                          const nextIndex = Math.min(index + pastedOtp.length, 5)
+                          document.getElementById(`otp-${nextIndex}`)?.focus()
+
+                          // Auto submit if full
+                          if (finalOtp.length === 6) {
+                            setTimeout(() => {
+                              // We need to pass a synthetic event or just call the function if it doesn't use the event
+                              // handleVerifyOTP expects FormEvent, but we can just call it
+                              // However, handleVerifyOTP uses e.preventDefault(), so we need a mock
+                              const mockEvent = { preventDefault: () => { } } as React.FormEvent
+                              handleVerifyOTP(mockEvent)
+                            }, 100)
+                          }
+                        } else {
+                          // Single digit logic (existing)
+                          const value = val
                           const newOtp = otp.split('')
                           newOtp[index] = value
                           const finalOtp = newOtp.join('')
                           setOtp(finalOtp)
 
-                          // Auto-focus next input
                           if (value && index < 5) {
                             document.getElementById(`otp-${index + 1}`)?.focus()
                           }
 
-                          // Auto-submit when all 6 digits entered
                           if (finalOtp.length === 6 && index === 5) {
                             setTimeout(() => {
-                              handleVerifyOTP(e as any)
+                              const mockEvent = { preventDefault: () => { } } as React.FormEvent
+                              handleVerifyOTP(mockEvent)
                             }, 100)
                           }
                         }
                       }}
                       onKeyDown={(e) => {
-                        // Auto-focus previous on backspace
                         if (e.key === 'Backspace' && !otp[index] && index > 0) {
                           document.getElementById(`otp-${index - 1}`)?.focus()
                         }
@@ -197,7 +227,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess, referralCode }:
                         e.preventDefault()
                         const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
                         setOtp(pastedData)
-                        // Focus last filled input
                         const lastIndex = Math.min(pastedData.length - 1, 5)
                         setTimeout(() => {
                           document.getElementById(`otp-${lastIndex}`)?.focus()

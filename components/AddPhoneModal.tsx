@@ -317,9 +317,33 @@ export default function AddPhoneModal({ isOpen, onClose, onSuccess }: AddPhoneMo
                     }}
                     type="text"
                     inputMode="numeric"
-                    maxLength={1}
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
                     value={otp[index] || ''}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (!/^\d*$/.test(val)) return
+
+                      if (val.length > 1) {
+                        // Handle autofill or paste
+                        const pastedOtp = val.slice(0, 6).split('')
+                        const newOtp = [...otp.split('')]
+
+                        pastedOtp.forEach((digit, i) => {
+                          if (index + i < 6) {
+                            newOtp[index + i] = digit
+                          }
+                        })
+
+                        setOtp(newOtp.join('').slice(0, 6))
+
+                        // Focus last filled
+                        const nextIndex = Math.min(index + pastedOtp.length, 5)
+                        otpInputs.current[nextIndex]?.focus()
+                      } else {
+                        // Single digit
+                        handleOtpChange(index, val)
+                      }
+                    }}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     onPaste={handleOtpPaste}
                     className="w-10 h-12 sm:w-12 sm:h-14 rounded-lg bg-white/5 border border-white/20 text-white text-center text-xl font-bold focus:border-yellow-400 focus:bg-white/10 focus:outline-none transition-all"

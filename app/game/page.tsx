@@ -441,6 +441,6 @@ export default function GamePage() {
           showProfile={true}
         />
       )}
-    </main>
+    </div>
   )
 }

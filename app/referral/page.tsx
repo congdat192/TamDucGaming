@@ -189,10 +189,22 @@ export default function ReferralPage() {
           <button
             onClick={() => {
               if (!data) return
-              // Use sharer.php for feed post
-              const url = encodeURIComponent(data.referralLink)
-              const quote = encodeURIComponent(`Chơi Santa Jump nhận quà 500K! Mã: ${data.referralCode}`)
-              window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, '_blank', 'width=600,height=400')
+              const url = data.referralLink
+              const text = `Chơi Santa Jump nhận quà 500K! Mã: ${data.referralCode}`
+
+              // Check if mobile and supports share
+              if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && navigator.share) {
+                navigator.share({
+                  title: 'Santa Jump',
+                  text: text,
+                  url: url
+                }).catch(console.error)
+              } else {
+                // Desktop fallback
+                const encodedUrl = encodeURIComponent(url)
+                const quote = encodeURIComponent(text)
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${quote}`, '_blank', 'width=600,height=400')
+              }
             }}
             className="py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
           >

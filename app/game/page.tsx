@@ -279,7 +279,10 @@ export default function GamePage() {
     // Set isPlaying immediately to prevent duplicate taps during API call
     setIsPlaying(true)
 
-    handleStartGame()
+    // Use setTimeout to ensure state updates are applied before calling handleStartGame
+    setTimeout(() => {
+      handleStartGame()
+    }, 0)
   }
 
   const handleGoHome = () => {

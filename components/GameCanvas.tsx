@@ -22,8 +22,8 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
   // 🛡️ Anti-Cheat Protection
   const { status: antiCheatStatus, verifyTouch } = useAntiCheat({
     requireTouch: true,
-    blockDevTools: true,
-    checkFingerprint: true,
+    blockDevTools: false, // Disabled for testing
+    checkFingerprint: false, // Disabled to prevent console spam
     onViolation: (reason) => {
       console.warn('[ANTI-CHEAT VIOLATION]', reason)
     }
@@ -33,12 +33,12 @@ function GameCanvasComponent({ onGameOver, onScoreUpdate, isPlaying, onStartGame
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Create fake global variables that hackers will find and modify
-    // These should NEVER be touched by legitimate code
-    ;(window as any).gameScore = 0
-    ;(window as any).maxScore = 0
-    ;(window as any).currentPoints = 0
-    ;(window as any).playerScore = 0
+      // Create fake global variables that hackers will find and modify
+      // These should NEVER be touched by legitimate code
+      ; (window as any).gameScore = 0
+      ; (window as any).maxScore = 0
+      ; (window as any).currentPoints = 0
+      ; (window as any).playerScore = 0
 
     // Cleanup on unmount
     return () => {

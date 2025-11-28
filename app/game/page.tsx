@@ -238,15 +238,17 @@ export default function GamePage() {
         setPlaysRemaining(data.playsRemaining)
       }
 
+      // Clear gameToken ONLY after successful game end
+      // This ensures cleanup can distinguish between completed and abandoned sessions
+      setGameToken(null)
+
       // Refresh user data in background
       refreshAuth()
     } catch (error) {
       console.error('Failed to submit score:', error)
       setFinalScore(score) // fallback on error
+      // Note: gameToken NOT cleared on error, so cleanup will abandon the session
     }
-
-    // Clear gameToken since this session is now completed
-    setGameToken(null)
 
     // NEW LOGIC: Always show GameOverModal after game ends
     setShowGameOver(true)

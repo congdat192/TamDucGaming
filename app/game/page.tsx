@@ -54,6 +54,7 @@ export default function GamePage() {
   const [gameToken, setGameToken] = useState<string | null>(null)
   const [challenge, setChallenge] = useState<string | null>(null) // For HMAC payload signing
   const [startTime, setStartTime] = useState<number>(0) // Track game start time for duration
+  const [error, setError] = useState<string | null>(null) // Error message for non-blocking display
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -141,7 +142,9 @@ export default function GamePage() {
       if (!res.ok) {
         // Reset isPlaying on error so user can try again
         setIsPlaying(false)
-        alert(data.error || 'Không thể bắt đầu game')
+        // Show error message without blocking UI
+        setError(data.error || 'Không thể bắt đầu game')
+        setTimeout(() => setError(null), 5000) // Auto-dismiss after 5s
         return
       }
 
@@ -320,10 +323,19 @@ export default function GamePage() {
   }
 
   return (
-    <main className="min-h-screen relative overflow-hidden pb-20">
-      {/* <Snowflakes /> */}
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 relative overflow-hidden">
+      {/* Error Toast - Non-blocking */}
+      {error && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚠️</span>
+            <span className="font-medium">{error}</span>
+          </div>
+        </div>
+      )}
 
-      {/* Header */}
+      {/* Snowflakes background */}
+      {/* <Snowflakes /> */}
       <header className="relative z-10 py-4 px-4">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button

@@ -4,10 +4,19 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-    const email = 'testhack3@matkinhtamduc.com'
-
     try {
-        // Get user
+        // Get email from query parameter
+        const { searchParams } = new URL(request.url)
+        const email = searchParams.get('email')
+
+        if (!email) {
+            return NextResponse.json(
+                { error: 'Email parameter required' },
+                { status: 400 }
+            )
+        }
+
+        // Get user by email
         const { data: user, error: userError } = await supabaseAdmin
             .from('users')
             .select('*')
@@ -15,7 +24,10 @@ export async function POST(request: NextRequest) {
             .single()
 
         if (userError || !user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
+            )
         }
 
         // Invalidate all orphaned sessions

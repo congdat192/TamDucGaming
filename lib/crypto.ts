@@ -17,32 +17,44 @@ export function hmacSHA256Server(data: string, key: string): string {
 }
 
 /**
- * Client-side HMAC signing using Web Crypto API
- * Used in browser to sign payloads before submission
+ * Client-side HMAC SHA256 (for payload signing)
+ * Uses Web Crypto API (browser only)
  */
-export async function hmacSHA256Client(data: string, key: string): Promise<string> {
-  // Convert strings to Uint8Arrays
-  const encoder = new TextEncoder()
-  const keyData = encoder.encode(key)
-  const messageData = encoder.encode(data)
+export async function hmacSHA256Client(message: string, secret: string): Promise<string> {
+  if (typeof window === 'undefined') {
+    throw new Error('hmacSHA256Client can only be called in browser')
+  }
 
-  // Import key for HMAC
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
+  // Check if crypto.subtle is available (requires HTTPS or localhost)
+  if (!window.crypto || !window.crypto.subtle) {
+    console.warn('[CRYPTO] crypto.subtle not available (non-secure context), skipping HMAC signing')
+    return '' // Return empty string to skip signing
+  }
 
-  // Sign the message
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+  try {
+    const enc = new TextEncoder()
+    const key = await window.crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
 
-  // Convert signature to hex string
-  const hashArray = Array.from(new Uint8Array(signature))
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const signature = await window.crypto.subtle.sign(
+      'HMAC',
+      key,
+      enc.encode(message)
+    )
 
-  return hashHex
+    // Convert to hex string
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+  } catch (error) {
+    console.error('[CRYPTO] HMAC signing failed:', error)
+    return '' // Return empty string on error
+  }
 }
 
 /**

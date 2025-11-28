@@ -281,20 +281,33 @@ export default function GamePage() {
     router.push('/')
   }
 
+  // Use ref to track current gameToken for cleanup
+  const gameTokenRef = useRef<string | null>(null)
+  const isPlayingRef = useRef(false)
+
+  useEffect(() => {
+    gameTokenRef.current = gameToken
+    isPlayingRef.current = isPlaying
+  }, [gameToken, isPlaying])
+
   // Cleanup: Abandon session if user leaves page while game is in progress
   useEffect(() => {
     return () => {
       // Only abandon if there's an active game token (game started but not ended)
-      if (gameToken && isPlaying) {
+      // Use ref values to get the latest state at unmount time
+      const currentToken = gameTokenRef.current
+      const currentlyPlaying = isPlayingRef.current
+
+      if (currentToken && currentlyPlaying) {
         fetch('/api/game/abandon', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameToken }),
+          body: JSON.stringify({ gameToken: currentToken }),
           keepalive: true // Ensure request completes even if page is unloading
         }).catch(err => console.error('Failed to abandon session:', err))
       }
     }
-  }, [gameToken, isPlaying])
+  }, []) // Empty dependency array - only run on mount/unmount
 
   if (isLoading) {
     return (

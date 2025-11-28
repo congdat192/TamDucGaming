@@ -927,6 +927,7 @@ export class SantaJumpGame {
   }
 
   private endGame(): void {
+    console.log('[ENGINE] endGame() called, score:', this.score)
     this.gameOver = true
     this.gameStarted = false
     this.phase = 'gameover'
@@ -935,6 +936,7 @@ export class SantaJumpGame {
       cancelAnimationFrame(this.animationId)
     }
 
+    console.log('[ENGINE] Calling onGameOver callback with score:', this.score)
     this.onGameOver(this.score)
   }
 

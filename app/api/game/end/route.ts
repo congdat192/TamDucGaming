@@ -5,8 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getGameConfig } from '@/lib/gameConfig'
 import { VOUCHER_TIERS } from '@/lib/voucher'
-import { notifyReferralBonus, notifyCanRedeemVoucher } from '@/lib/notifications'
-import { sendReferralCompletionEmail } from '@/lib/email'
+import { notifyCanRedeemVoucher } from '@/lib/notifications'
 import { rateLimit } from '@/lib/ratelimit'
 import {
   validateScore,
@@ -327,60 +326,6 @@ export async function POST(request: NextRequest) {
         .from('game_sessions')
         .update({ campaign_id: campaign[0].id })
         .eq('id', session.id)
-    }
-
-    // Check for referral reward (first game completed by referred user)
-    const { data: referral } = await supabase
-      .from('referrals')
-      .select('*')
-      .eq('referred_id', user.id)
-      .eq('reward_given', false)
-      .single()
-
-    if (referral) {
-      const config = await getGameConfig()
-
-      // Give bonus play to referrer
-      const { data: referrer } = await supabase
-        .from('users')
-        .select('bonus_plays, email')
-        .eq('id', referral.referrer_id)
-        .single()
-
-      if (referrer) {
-        await supabaseAdmin
-          .from('users')
-          .update({
-            bonus_plays: referrer.bonus_plays + config.bonusPlaysForReferral
-          })
-          .eq('id', referral.referrer_id)
-
-        // Send in-app notification to referrer
-        try {
-          await notifyReferralBonus(referral.referrer_id, config.bonusPlaysForReferral)
-          console.log(`[REFERRAL NOTIFICATION] Created for ${referral.referrer_id}`)
-        } catch (notifyError) {
-          console.error('Failed to create referral notification:', notifyError)
-        }
-
-        // Send email notification to referrer
-        if (referrer.email) {
-          const sent = await sendReferralCompletionEmail(
-            referrer.email,
-            config.bonusPlaysForReferral,
-            user.email || user.phone || 'Người dùng mới'
-          )
-          if (sent) {
-            console.log(`[REFERRAL EMAIL] Sent to ${referrer.email}`)
-          }
-        }
-      }
-
-      // Mark referral as rewarded
-      await supabaseAdmin
-        .from('referrals')
-        .update({ reward_given: true })
-        .eq('id', referral.id)
     }
 
     // Get available vouchers based on cumulative total_score

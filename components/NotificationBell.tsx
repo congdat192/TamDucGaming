@@ -26,6 +26,7 @@ export default function NotificationBell({ userId, isLoggedIn }: NotificationBel
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showAll, setShowAll] = useState(false) // Track if showing all notifications
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Fetch unread count
@@ -42,12 +43,13 @@ export default function NotificationBell({ userId, isLoggedIn }: NotificationBel
   }, [isLoggedIn])
 
   // Fetch notifications list
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (limit?: number) => {
     if (!isLoggedIn) return
 
     setLoading(true)
     try {
-      const res = await fetch('/api/notifications?limit=10')
+      const url = limit ? `/api/notifications?limit=${limit}` : '/api/notifications'
+      const res = await fetch(url)
       const data = await res.json()
       if (data.success) {
         setNotifications(data.notifications || [])
@@ -111,9 +113,16 @@ export default function NotificationBell({ userId, isLoggedIn }: NotificationBel
   // Toggle dropdown
   const toggleDropdown = () => {
     if (!isOpen) {
-      fetchNotifications()
+      setShowAll(false) // Reset to show only 3
+      fetchNotifications(3) // Fetch only 3 recent notifications
     }
     setIsOpen(!isOpen)
+  }
+
+  // Load all notifications
+  const handleViewAll = () => {
+    setShowAll(true)
+    fetchNotifications() // Fetch all notifications (no limit)
   }
 
   // Close dropdown when clicking outside
@@ -269,39 +278,52 @@ export default function NotificationBell({ userId, isLoggedIn }: NotificationBel
                 <p>Chưa có thông báo</p>
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`px-4 py-3 cursor-pointer transition-all hover:bg-white/5 ${
-                      !notification.is_read ? 'bg-blue-500/10' : ''
-                    }`}
-                  >
-                    <div className="flex gap-3">
-                      <span className="text-xl flex-shrink-0">
-                        {getIcon(notification.type)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={`text-sm ${!notification.is_read ? 'text-white font-semibold' : 'text-gray-300'}`}>
-                            {notification.title}
+              <>
+                <div className="divide-y divide-white/5">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`px-4 py-3 cursor-pointer transition-all hover:bg-white/5 ${!notification.is_read ? 'bg-blue-500/10' : ''
+                        }`}
+                    >
+                      <div className="flex gap-3">
+                        <span className="text-xl flex-shrink-0">
+                          {getIcon(notification.type)}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`text-sm ${!notification.is_read ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                              {notification.title}
+                            </p>
+                            {!notification.is_read && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                            {notification.message}
                           </p>
-                          {!notification.is_read && (
-                            <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>
-                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatTime(notification.created_at)}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatTime(notification.created_at)}
-                        </p>
                       </div>
                     </div>
+                  ))}
+                </div>
+
+                {/* View All Button */}
+                {!showAll && notifications.length >= 3 && (
+                  <div className="border-t border-white/10">
+                    <button
+                      onClick={handleViewAll}
+                      className="w-full px-4 py-3 text-sm text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-all font-medium"
+                    >
+                      📋 Xem tất cả thông báo
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         </div>

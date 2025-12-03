@@ -16,35 +16,41 @@ interface EmailTemplates {
     voucherClaim: EmailTemplate
 }
 
-const DEFAULT_TEMPLATES: EmailTemplates = {
-    referralBonus: {
-        subject: '',
-        fromName: '',
-        fromEmail: '',
-        htmlTemplate: '',
-    },
+type TemplateKey = keyof EmailTemplates
+
+const TEMPLATE_INFO: Record<TemplateKey, { name: string; icon: string; variables: string[] }> = {
     otpLogin: {
-        subject: '',
-        fromName: '',
-        fromEmail: '',
-        htmlTemplate: '',
+        name: 'OTP Login',
+        icon: '🔐',
+        variables: ['{{otp}}']
+    },
+    referralBonus: {
+        name: 'Referral Bonus',
+        icon: '🎁',
+        variables: ['{{bonusPlays}}', '{{refereeEmail}}', '{{appUrl}}']
     },
     referralCompletion: {
-        subject: '',
-        fromName: '',
-        fromEmail: '',
-        htmlTemplate: '',
+        name: 'Referral Completion',
+        icon: '🎉',
+        variables: ['{{bonusPlays}}', '{{appUrl}}']
     },
     voucherClaim: {
-        subject: '',
-        fromName: '',
-        fromEmail: '',
-        htmlTemplate: '',
-    },
+        name: 'Voucher Claim',
+        icon: '🎁',
+        variables: ['{{voucherLabel}}', '{{voucherCode}}', '{{expiresAt}}']
+    }
+}
+
+const DEFAULT_TEMPLATES: EmailTemplates = {
+    referralBonus: { subject: '', fromName: '', fromEmail: '', htmlTemplate: '' },
+    otpLogin: { subject: '', fromName: '', fromEmail: '', htmlTemplate: '' },
+    referralCompletion: { subject: '', fromName: '', fromEmail: '', htmlTemplate: '' },
+    voucherClaim: { subject: '', fromName: '', fromEmail: '', htmlTemplate: '' },
 }
 
 export default function EmailTemplatesPage() {
     const [templates, setTemplates] = useState<EmailTemplates>(DEFAULT_TEMPLATES)
+    const [activeTab, setActiveTab] = useState<TemplateKey>('otpLogin')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
@@ -92,7 +98,7 @@ export default function EmailTemplatesPage() {
                 if (res.status === 401) throw new Error('Chưa đăng nhập admin')
                 throw new Error('Không thể lưu templates')
             }
-            setSuccess('Email templates đã được lưu thành công!')
+            setSuccess('✅ Email templates đã được lưu thành công!')
             setTimeout(() => setSuccess(''), 3000)
         } catch (err) {
             console.error('Save templates error:', err)
@@ -102,20 +108,58 @@ export default function EmailTemplatesPage() {
         }
     }
 
-    if (loading) {
-        return <div className="text-white">Đang tải...</div>
+    const updateTemplate = (key: TemplateKey, field: keyof EmailTemplate, value: string) => {
+        setTemplates({
+            ...templates,
+            [key]: { ...templates[key], [field]: value }
+        })
     }
+
+    const getPreviewHtml = (templateKey: TemplateKey): string => {
+        const template = templates[templateKey]
+        let html = template.htmlTemplate
+
+        // Replace variables with sample data
+        const sampleData: Record<string, string> = {
+            '{{otp}}': '123456',
+            '{{bonusPlays}}': '2',
+            '{{refereeEmail}}': 'friend@example.com',
+            '{{appUrl}}': 'http://localhost:3000',
+            '{{voucherLabel}}': 'Voucher 100K',
+            '{{voucherCode}}': 'MKTD-ABC12345',
+            '{{expiresAt}}': '31/12/2025'
+        }
+
+        Object.entries(sampleData).forEach(([key, value]) => {
+            html = html.replace(new RegExp(key, 'g'), value)
+        })
+
+        return html
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-white text-lg">⏳ Đang tải...</div>
+            </div>
+        )
+    }
+
+    const currentTemplate = templates[activeTab]
+    const templateInfo = TEMPLATE_INFO[activeTab]
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-white mb-2">📧 Email Templates</h1>
-                <p className="text-gray-400">Quản lý nội dung email tự động</p>
+                <p className="text-gray-400">Chỉnh sửa và xem trước email templates</p>
             </div>
 
+            {/* Alerts */}
             {error && (
                 <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg">
-                    {error}
+                    ❌ {error}
                 </div>
             )}
 
@@ -125,202 +169,128 @@ export default function EmailTemplatesPage() {
                 </div>
             )}
 
-            {/* Referral Bonus Email */}
-            <div className="bg-gray-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">📧 Referral Bonus Email</h2>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">Subject</label>
-                            <input
-                                type="text"
-                                value={templates.referralBonus.subject}
-                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, subject: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}</p>
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Name</label>
-                            <input
-                                type="text"
-                                value={templates.referralBonus.fromName}
-                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, fromName: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Email</label>
-                            <input
-                                type="email"
-                                value={templates.referralBonus.fromEmail}
-                                onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, fromEmail: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
-                        <textarea
-                            value={templates.referralBonus.htmlTemplate}
-                            onChange={(e) => setTemplates({ ...templates, referralBonus: { ...templates.referralBonus, htmlTemplate: e.target.value } })}
-                            className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                            rows={12}
-                        />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{refereeEmail}}'}, {'{{appUrl}}'}</p>
-                    </div>
-                </div>
+            {/* Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+                {(Object.keys(TEMPLATE_INFO) as TemplateKey[]).map((key) => (
+                    <button
+                        key={key}
+                        onClick={() => setActiveTab(key)}
+                        className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${activeTab === key
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                    >
+                        {TEMPLATE_INFO[key].icon} {TEMPLATE_INFO[key].name}
+                    </button>
+                ))}
             </div>
 
-            {/* OTP Login Email */}
-            <div className="bg-gray-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">🔐 OTP Login Email</h2>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Main Content - Split View */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Editor */}
+                <div className="bg-gray-800 rounded-xl p-6 space-y-4">
+                    <h2 className="text-xl font-bold text-white mb-4">
+                        {templateInfo.icon} {templateInfo.name}
+                    </h2>
+
+                    {/* Subject */}
+                    <div>
+                        <label className="block text-gray-300 mb-2 text-sm font-medium">Subject</label>
+                        <input
+                            type="text"
+                            value={currentTemplate.subject}
+                            onChange={(e) => updateTemplate(activeTab, 'subject', e.target.value)}
+                            className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Email subject..."
+                        />
+                    </div>
+
+                    {/* From Name & Email */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-gray-300 mb-2 text-sm">Subject</label>
+                            <label className="block text-gray-300 mb-2 text-sm font-medium">From Name</label>
                             <input
                                 type="text"
-                                value={templates.otpLogin.subject}
-                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, subject: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{otp}}'}</p>
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Name</label>
-                            <input
-                                type="text"
-                                value={templates.otpLogin.fromName}
-                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, fromName: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                value={currentTemplate.fromName}
+                                onChange={(e) => updateTemplate(activeTab, 'fromName', e.target.value)}
+                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Santa Jump"
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Email</label>
+                            <label className="block text-gray-300 mb-2 text-sm font-medium">From Email</label>
                             <input
                                 type="email"
-                                value={templates.otpLogin.fromEmail}
-                                onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, fromEmail: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                value={currentTemplate.fromEmail}
+                                onChange={(e) => updateTemplate(activeTab, 'fromEmail', e.target.value)}
+                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="noreply@example.com"
                             />
                         </div>
                     </div>
+
+                    {/* HTML Template */}
                     <div>
-                        <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
+                        <label className="block text-gray-300 mb-2 text-sm font-medium">HTML Template</label>
                         <textarea
-                            value={templates.otpLogin.htmlTemplate}
-                            onChange={(e) => setTemplates({ ...templates, otpLogin: { ...templates.otpLogin, htmlTemplate: e.target.value } })}
+                            value={currentTemplate.htmlTemplate}
+                            onChange={(e) => updateTemplate(activeTab, 'htmlTemplate', e.target.value)}
                             className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                            rows={12}
+                            rows={20}
+                            placeholder="<div>Your HTML here...</div>"
                         />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{otp}}'}</p>
+                        <div className="mt-2 text-xs text-gray-400">
+                            <span className="font-medium">Available variables:</span>{' '}
+                            {templateInfo.variables.map((v, i) => (
+                                <span key={v}>
+                                    <code className="bg-gray-700 px-1.5 py-0.5 rounded">{v}</code>
+                                    {i < templateInfo.variables.length - 1 && ', '}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Referral Completion Email */}
-            <div className="bg-gray-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">🎉 Referral Completion Email</h2>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">Subject</label>
-                            <input
-                                type="text"
-                                value={templates.referralCompletion.subject}
-                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, subject: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{appUrl}}'}</p>
+                {/* Right: Preview */}
+                <div className="bg-gray-800 rounded-xl p-6">
+                    <h2 className="text-xl font-bold text-white mb-4">👁️ Live Preview</h2>
+                    <div className="bg-white rounded-lg overflow-hidden shadow-lg">
+                        {/* Email Header */}
+                        <div className="bg-gray-100 border-b border-gray-300 px-4 py-3 text-sm">
+                            <div className="text-gray-600">
+                                <strong>From:</strong> {currentTemplate.fromName || '(No name)'} &lt;{currentTemplate.fromEmail || 'noreply@example.com'}&gt;
+                            </div>
+                            <div className="text-gray-600 mt-1">
+                                <strong>Subject:</strong> {currentTemplate.subject || '(No subject)'}
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Name</label>
-                            <input
-                                type="text"
-                                value={templates.referralCompletion.fromName}
-                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, fromName: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Email</label>
-                            <input
-                                type="email"
-                                value={templates.referralCompletion.fromEmail}
-                                onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, fromEmail: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
-                        <textarea
-                            value={templates.referralCompletion.htmlTemplate}
-                            onChange={(e) => setTemplates({ ...templates, referralCompletion: { ...templates.referralCompletion, htmlTemplate: e.target.value } })}
-                            className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                            rows={12}
+                        {/* Email Body */}
+                        <div
+                            className="p-4 overflow-auto max-h-[600px]"
+                            dangerouslySetInnerHTML={{ __html: getPreviewHtml(activeTab) }}
                         />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{bonusPlays}}'}, {'{{appUrl}}'}</p>
                     </div>
-                </div>
-            </div>
-
-            {/* Voucher Claim Email */}
-            <div className="bg-gray-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">🎁 Voucher Claim Email</h2>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">Subject</label>
-                            <input
-                                type="text"
-                                value={templates.voucherClaim?.subject || ''}
-                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, subject: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                            <p className="text-gray-500 text-xs mt-1">Variables: {'{{voucherLabel}}'}</p>
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Name</label>
-                            <input
-                                type="text"
-                                value={templates.voucherClaim?.fromName || ''}
-                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, fromName: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm">From Email</label>
-                            <input
-                                type="email"
-                                value={templates.voucherClaim?.fromEmail || ''}
-                                onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, fromEmail: e.target.value } })}
-                                className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-gray-300 mb-2 text-sm">HTML Template</label>
-                        <textarea
-                            value={templates.voucherClaim?.htmlTemplate || ''}
-                            onChange={(e) => setTemplates({ ...templates, voucherClaim: { ...templates.voucherClaim, htmlTemplate: e.target.value } })}
-                            className="w-full px-4 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                            rows={12}
-                        />
-                        <p className="text-gray-500 text-xs mt-1">Variables: {'{{voucherLabel}}'}, {'{{voucherCode}}'}, {'{{expiresAt}}'}</p>
-                    </div>
+                    <p className="text-xs text-gray-400 mt-3">
+                        💡 Preview uses sample data for variables
+                    </p>
                 </div>
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+                <button
+                    onClick={fetchTemplates}
+                    disabled={loading}
+                    className="px-6 py-3 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 disabled:opacity-50"
+                >
+                    🔄 Reload
+                </button>
                 <button
                     onClick={saveTemplates}
                     disabled={saving}
                     className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {saving ? 'Đang lưu...' : '💾 Lưu cấu hình'}
+                    {saving ? '⏳ Đang lưu...' : '💾 Lưu tất cả'}
                 </button>
             </div>
         </div>

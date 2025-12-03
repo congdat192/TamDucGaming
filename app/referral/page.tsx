@@ -185,41 +185,14 @@ export default function ReferralPage() {
         </div>
 
         {/* Share Link Section */}
-        <div className="grid grid-cols-1 gap-3">
-          <button
-            onClick={() => {
-              if (!data) return
-              const url = data.referralLink
-              const text = `Chơi Santa Jump nhận quà 500K! Mã: ${data.referralCode}`
-
-              // Check if mobile and supports share
-              if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && navigator.share) {
-                navigator.share({
-                  title: 'Santa Jump',
-                  text: text,
-                  url: url
-                }).catch(console.error)
-              } else {
-                // Desktop fallback
-                const encodedUrl = encodeURIComponent(url)
-                const quote = encodeURIComponent(text)
-                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${quote}`, '_blank', 'width=600,height=400')
-              }
-            }}
-            className="py-3 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.791-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-            Đăng Facebook
-          </button>
-        </div>
-
         <button
           onClick={handleShare}
           className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg shadow-cyan-500/20"
         >
-          <div className="flex -space-x-2 mr-1">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+          </svg>
+          <div className="flex -space-x-2">
             <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center z-10 border border-blue-500">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0084FF" className="w-4 h-4">
                 <path d="M12 2C6.48 2 2 6.03 2 11C2 13.66 3.39 16.04 5.55 17.59C5.67 17.68 5.72 17.84 5.69 17.99L5.23 20.82C5.16 21.23 5.6 21.56 5.97 21.34L8.92 19.7C9.04 19.63 9.18 19.62 9.31 19.66C10.17 19.88 11.07 20 12 20C17.52 20 22 15.97 22 11C22 6.03 17.52 2 12 2ZM13.85 14.15L11.65 11.8L7.4 14.15L12.15 9L14.35 11.35L18.6 9L13.85 14.15Z" />
@@ -232,19 +205,25 @@ export default function ReferralPage() {
           Mời qua tin nhắn
         </button>
 
-        <div className="bg-black/20 rounded-2xl p-1.5 flex items-center gap-2 border border-white/10">
-          <div className="flex-1 px-4 py-3 text-white/60 text-xs truncate font-mono">
-            {data?.referralLink}
+        {/* Copy Link Section */}
+        <div className="space-y-2">
+          <p className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 text-sm font-bold text-center">
+            Hoặc copy đường link này và gửi cho bạn bè
+          </p>
+          <div className="bg-black/20 rounded-2xl p-1.5 flex items-center gap-2 border border-white/10">
+            <div className="flex-1 px-4 py-3 text-white/60 text-xs truncate font-mono">
+              {data?.referralLink}
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${copied
+                ? 'bg-green-500/20 text-green-400'
+                : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+            >
+              {copied ? 'Đã Copy' : 'Copy Link'}
+            </button>
           </div>
-          <button
-            onClick={handleCopyLink}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${copied
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-          >
-            {copied ? 'Đã Copy' : 'Copy Link'}
-          </button>
         </div>
 
         {/* How it works */}

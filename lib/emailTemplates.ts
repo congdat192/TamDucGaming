@@ -184,6 +184,31 @@ export async function getEmailTemplates(): Promise<EmailTemplates> {
   }
 }
 
+// Save email templates to database
+export async function saveEmailTemplates(templates: EmailTemplates): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabaseAdmin
+      .from('email_templates')
+      .upsert({
+        id: 'main',
+        templates: templates,
+        updated_at: new Date().toISOString()
+      })
+
+    if (error) {
+      console.error('Error saving email templates:', error)
+      return { success: false, error: error.message }
+    }
+
+    // Clear cache after successful save
+    clearEmailTemplatesCache()
+    return { success: true }
+  } catch (error) {
+    console.error('Error saving email templates:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 // Clear cache (call after template update)
 export function clearEmailTemplatesCache(): void {
   cachedTemplates = null

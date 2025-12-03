@@ -13,6 +13,7 @@ interface Obstacle {
   topHeight: number
   bottomY: number
   passed: boolean
+  logoId?: number  // Unique ID for logo rotation (persistent across movement)
 }
 
 interface Snowflake {
@@ -80,6 +81,11 @@ export class SantaJumpGame {
   private lastUspChangeTime: number = 0
   private uspOpacity: number = 1
   private uspState: 'visible' | 'fading_out' | 'fading_in' = 'visible'
+
+  // Sponsor logos
+  private sponsorLogos: HTMLImageElement[] = []
+  private sponsorLogosLoaded: boolean = false
+  private obstacleCounter: number = 0  // Counter for unique obstacle IDs
 
   private sfx?: {
     playJump: () => void
@@ -172,12 +178,50 @@ export class SantaJumpGame {
     this.initGroundCache()
     this.initSantaCache()
 
+    // Load sponsor logos
+    this.loadSponsorLogos()
+
     // Draw initial state
     this.drawStartScreen()
   }
 
   private groundCanvas: HTMLCanvasElement | null = null
   private santaCanvas: HTMLCanvasElement | null = null
+
+  /**
+   * Load sponsor logos from /public/images/
+   * Logos will be rotated on obstacles
+   */
+  private loadSponsorLogos(): void {
+    const logoFiles = [
+      '/images/logo mktd.png',
+      '/images/logo kodak.png',
+      '/images/logo chemi.png',
+      '/images/logo newbalance.png'
+    ]
+
+    let loadedCount = 0
+
+    logoFiles.forEach((src, index) => {
+      const img = new Image()
+      img.onload = () => {
+        loadedCount++
+        if (loadedCount === logoFiles.length) {
+          this.sponsorLogosLoaded = true
+          console.log('✅ All sponsor logos loaded successfully')
+        }
+      }
+      img.onerror = () => {
+        console.warn(`⚠️ Failed to load logo: ${src}`)
+        loadedCount++
+        if (loadedCount === logoFiles.length) {
+          this.sponsorLogosLoaded = true
+        }
+      }
+      img.src = src
+      this.sponsorLogos[index] = img
+    })
+  }
 
   private initGroundCache(): void {
     this.groundCanvas = document.createElement('canvas')
@@ -308,7 +352,7 @@ export class SantaJumpGame {
 
     // Draw demo obstacles with semi-transparent effect
     this.ctx.globalAlpha = 0.5
-    demoObstacles.forEach(obstacle => this.drawObstacle(obstacle))
+    demoObstacles.forEach((obstacle, index) => this.drawObstacle(obstacle, index))
     this.ctx.globalAlpha = 1.0
 
     this.drawGround()
@@ -427,13 +471,16 @@ export class SantaJumpGame {
     }
   }
 
-  private drawObstacle(obstacle: Obstacle): void {
+  private drawObstacle(obstacle: Obstacle, obstacleIndex?: number): void {
     const { x, topHeight, bottomY } = obstacle
     const width = this.mechanics.obstacleWidth
 
-    // Draw chimney style obstacles
-    this.drawChimney(x, 0, width, topHeight, true)
-    this.drawChimney(x, bottomY, width, GAME_CONFIG.HEIGHT - bottomY - GAME_CONFIG.GROUND_HEIGHT, false)
+    // Use logoId if available, otherwise fall back to index
+    const logoId = obstacle.logoId !== undefined ? obstacle.logoId : (obstacleIndex || 0)
+
+    // Draw chimney style obstacles with logo
+    this.drawChimney(x, 0, width, topHeight, true, logoId)
+    this.drawChimney(x, bottomY, width, GAME_CONFIG.HEIGHT - bottomY - GAME_CONFIG.GROUND_HEIGHT, false, logoId)
   }
 
   private chimneyPattern: CanvasPattern | null = null
@@ -468,7 +515,7 @@ export class SantaJumpGame {
     this.chimneyPattern = this.ctx.createPattern(patternCanvas, 'repeat')
   }
 
-  private drawChimney(x: number, y: number, width: number, height: number, flipped: boolean): void {
+  private drawChimney(x: number, y: number, width: number, height: number, flipped: boolean, obstacleIndex?: number): void {
     const ctx = this.ctx
 
     if (height <= 0) return
@@ -486,6 +533,27 @@ export class SantaJumpGame {
     ctx.fillRect(0, 0, width, height)
     ctx.restore()
 
+    // Draw sponsor logo in the middle of chimney
+    if (this.sponsorLogosLoaded && this.sponsorLogos.length > 0 && obstacleIndex !== undefined && height > 60) {
+      const logoIndex = obstacleIndex % this.sponsorLogos.length
+      const logo = this.sponsorLogos[logoIndex]
+
+      if (logo && logo.complete && logo.naturalWidth > 0) {
+        const logoSize = 45  // Logo size (45x45px)
+        const logoX = x + (width - logoSize) / 2  // Center horizontally
+        const logoY = y + (height - logoSize) / 2  // Center vertically
+
+        // Draw white background circle for logo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+        ctx.beginPath()
+        ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 3, 0, Math.PI * 2)
+        ctx.fill()
+
+        // Draw logo
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize)
+      }
+    }
+
     // Chimney cap
     ctx.fillStyle = COLORS.christmas.chimney
     if (flipped) {
@@ -502,7 +570,10 @@ export class SantaJumpGame {
   }
 
   private getObstacleFromPool(): Obstacle {
-    return this.obstaclePool.pop() || { x: 0, topHeight: 0, bottomY: 0, passed: false }
+    const obstacle = this.obstaclePool.pop() || { x: 0, topHeight: 0, bottomY: 0, passed: false }
+    // Assign unique logo ID
+    obstacle.logoId = this.obstacleCounter++
+    return obstacle
   }
 
   private returnObstacleToPool(obstacle: Obstacle): void {
@@ -685,7 +756,7 @@ export class SantaJumpGame {
 
     // Draw static obstacles with semi-transparent effect
     this.ctx.globalAlpha = 0.6  // Make them semi-transparent
-    staticObstacles.forEach(obstacle => this.drawObstacle(obstacle))
+    staticObstacles.forEach((obstacle, index) => this.drawObstacle(obstacle, index))
     this.ctx.globalAlpha = 1.0  // Reset opacity
 
     // Draw Santa
@@ -758,7 +829,7 @@ export class SantaJumpGame {
       const targetX = GAME_CONFIG.WIDTH * 0.65  // Position at 65% of width for better visibility
       const startX = GAME_CONFIG.WIDTH + 100
       this.previewObstacle.x = startX - (slideProgress * (startX - targetX))
-      this.drawObstacle(this.previewObstacle)
+      this.drawObstacle(this.previewObstacle, 0)
     }
 
     // Draw ground
@@ -826,8 +897,8 @@ export class SantaJumpGame {
     this.updateObstacles()
 
     // Draw obstacles
-    for (const obstacle of this.obstacles) {
-      this.drawObstacle(obstacle)
+    for (let i = 0; i < this.obstacles.length; i++) {
+      this.drawObstacle(this.obstacles[i], i)
     }
 
     // Draw ground

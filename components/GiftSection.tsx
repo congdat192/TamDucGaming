@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import VoucherRedemptionAd from '@/components/ads/VoucherRedemptionAd'
 
 interface User {
     id: string
@@ -275,6 +276,12 @@ export default function GiftSection({ user, isLoggedIn, onRedeemSuccess }: GiftS
                             {vouchers.map((reward, index) => renderRewardItem(reward, index))}
                         </div>
                     )}
+
+                    {/* Sponsor Ad - Always show */}
+                    <VoucherRedemptionAd
+                        voucherValue={vouchers[0]?.value || 50000}
+                        className="mt-4"
+                    />
 
                     <div className="mt-4 text-center text-white/50 text-[10px]">
                         <p>Voucher sẽ được gửi qua email của bạn</p>

@@ -9,6 +9,8 @@ import ProfileModal from '@/components/ProfileModal'
 import AddPhoneModal from '@/components/AddPhoneModal'
 import OutOfPlaysModal from '@/components/OutOfPlaysModal'
 import BottomNavigation from '@/components/BottomNavigation'
+import LoadingScreenAd from '@/components/ads/LoadingScreenAd'
+import GroundBanner from '@/components/ads/GroundBanner'
 import { getGameConfig } from '@/lib/gameConfig'
 import { hmacSHA256Client } from '@/lib/crypto'
 // import Snowflakes from '@/components/Snowflakes'
@@ -44,6 +46,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isStarting, setIsStarting] = useState(false) // Prevent duplicate start calls
+  const [showLoadingAd, setShowLoadingAd] = useState(true) // Loading screen ad
   // Removed currentScore state to prevent re-renders
   const [showGameOver, setShowGameOver] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -369,6 +372,13 @@ export default function GamePage() {
           isSubmitting={isSubmitting}
         />
 
+        {/* Ground Banner - Show when not playing */}
+        {!isPlaying && !showGameOver && (
+          <div className="w-full max-w-md">
+            <GroundBanner className="mt-4" />
+          </div>
+        )}
+
         {/* Instructions */}
         {!isPlaying && !showGameOver && (
           <div className="mt-6 text-center">
@@ -442,6 +452,14 @@ export default function GamePage() {
         <BottomNavigation
           onProfileClick={() => setShowProfile(true)}
           showProfile={true}
+        />
+      )}
+
+      {/* Loading Screen Ad - Show on first load */}
+      {showLoadingAd && (
+        <LoadingScreenAd
+          onComplete={() => setShowLoadingAd(false)}
+          duration={2500}
         />
       )}
     </div>

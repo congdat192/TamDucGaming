@@ -6,6 +6,7 @@ import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
 import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import ProfileModal from '@/components/ProfileModal'
+import LeaderboardSponsor from '@/components/ads/LeaderboardSponsor'
 import { useBGM } from '@/hooks/useBGM'
 
 interface LeaderboardEntry {
@@ -137,7 +138,10 @@ export default function LeaderboardPage() {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-4 py-4">
         <div className="glass rounded-3xl p-4 max-w-md w-full">
-          {/* Period Tabs */}
+          {/* Sponsor - moved to top */}
+          <LeaderboardSponsor className="mb-3" />
+
+          {/* Period Tabs - moved below sponsor */}
           <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar justify-center">
             {(['all', 'week', 'month'] as Period[]).map((p) => (
               <button
@@ -154,8 +158,6 @@ export default function LeaderboardPage() {
               </button>
             ))}
           </div>
-
-
 
           {/* Leaderboard List */}
           {loading ? (

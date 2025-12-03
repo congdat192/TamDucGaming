@@ -77,6 +77,7 @@ export default function AdminLayout({
         { href: '/admin/email-templates', label: '📧 Email Templates', icon: '📧' },
         { href: '/admin/email-logs', label: '📬 Email Logs', icon: '📬' },
         { href: '/admin/campaigns', label: '📅 Chiến dịch', icon: '📅' },
+        { href: '/admin/ads', label: '📢 Quảng cáo', icon: '📢' },
     ]
 
     return (
@@ -97,8 +98,8 @@ export default function AdminLayout({
                                     key={item.href}
                                     onClick={() => router.push(item.href)}
                                     className={`w-full text-left px-4 py-3 rounded-lg transition-all ${isActive
-                                            ? 'bg-blue-600 text-white font-semibold'
-                                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                        ? 'bg-blue-600 text-white font-semibold'
+                                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
                                         }`}
                                 >
                                     {item.label}

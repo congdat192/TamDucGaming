@@ -7,6 +7,7 @@ import Snowflakes from '@/components/Snowflakes'
 import BottomNavigation from '@/components/BottomNavigation'
 import FloatingAudioToggle from '@/components/FloatingAudioToggle'
 import ProfileModal from '@/components/ProfileModal'
+import VoucherRedemptionAd from '@/components/ads/VoucherRedemptionAd'
 
 interface User {
     id: string
@@ -306,6 +307,12 @@ export default function GiftPage() {
                             </div>
                         )}
 
+                        {/* Sponsor Ad */}
+                        <VoucherRedemptionAd
+                            voucherValue={vouchers[0]?.value || 50000}
+                            className="mt-4"
+                        />
+
                         <div className="mt-4 text-center text-white/50 text-[10px]">
                             <p>Voucher sẽ được gửi qua email của bạn</p>
                             <p>Điểm sẽ bị trừ sau khi đổi voucher</p>
@@ -331,6 +338,12 @@ export default function GiftPage() {
                                 {gifts.map((reward, index) => renderRewardItem(reward, index))}
                             </div>
                         )}
+
+                        {/* Sponsor Ad */}
+                        <VoucherRedemptionAd
+                            voucherValue={gifts[0]?.value || 50000}
+                            className="mt-4"
+                        />
 
                         <div className="mt-4 text-center text-white/50 text-[10px]">
                             <p>Quà tặng vật lý sẽ được giao đến bạn</p>

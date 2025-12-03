@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import GameOverAd from '@/components/ads/GameOverAd'
 
 interface ModalContentData {
   title: string
@@ -125,6 +126,9 @@ export default function GameOverModal({
           </div>
           <p className="text-sm text-white/70">Tổng điểm: {totalScore}</p>
         </div>
+
+        {/* Sponsor Ad */}
+        <GameOverAd score={score} className="mb-4" />
 
         {/* Actions */}
         <div className="space-y-2">
